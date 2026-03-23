@@ -1,805 +1,778 @@
-{\rtf1\ansi\ansicpg950\cocoartf2868
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
-{\colortbl;\red255\green255\blue255;\red70\green137\blue204;\red23\green24\blue24;\red140\green211\blue254;
-\red202\green202\blue202;\red109\green109\blue109;\red194\green126\blue101;\red212\green212\blue212;\red167\green197\blue152;
-\red109\green115\blue120;\red246\green124\blue48;\red113\green192\blue131;\red183\green111\blue247;\red54\green192\blue160;
-\red163\green79\blue131;}
-{\*\expandedcolortbl;;\cssrgb\c33725\c61176\c83922;\cssrgb\c11765\c12157\c12549;\cssrgb\c61176\c86275\c99608;
-\cssrgb\c83137\c83137\c83137;\cssrgb\c50196\c50196\c50196;\cssrgb\c80784\c56863\c47059;\cssrgb\c86275\c86275\c86275;\cssrgb\c70980\c80784\c65882;
-\cssrgb\c50196\c52549\c54510;\cssrgb\c98039\c56471\c24314;\cssrgb\c50588\c78824\c58431;\cssrgb\c77255\c54118\c97647;\cssrgb\c23922\c78824\c69020;
-\cssrgb\c70588\c40000\c58431;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-\deftab720
-\pard\pardeftab720\partightenfactor0
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日曆版工作記錄看板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .task-card {
+            cursor: grab;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .task-card:active {
+            cursor: grabbing;
+            transform: scale(0.98);
+        }
+        .task-card.dragging {
+            opacity: 0.5;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .column-drop-zone {
+            min-height: 150px;
+            transition: background-color 0.2s ease;
+        }
+        .column-drop-zone.drag-over {
+            background-color: #e2e8f0;
+            border: 2px dashed #94a3b8;
+            border-radius: 0.5rem;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 日曆網格樣式 */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
 
-\f0\fs28 \cf2 \cb3 \expnd0\expndtw0\kerning0
-\outl0\strokewidth0 \strokec2 <!DOCTYPE\cf4 \strokec4  html\cf2 \strokec2 >\cf5 \cb1 \strokec5 \
-\pard\pardeftab720\partightenfactor0
-\cf6 \cb3 \strokec6 <\cf2 \strokec2 html\cf5 \strokec5  \cf4 \strokec4 lang\cf6 \strokec6 =\cf7 \strokec7 "zh-TW"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cf6 \cb3 \strokec6 <\cf2 \strokec2 head\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\pard\pardeftab720\partightenfactor0
-\cf5 \cb3     \cf6 \strokec6 <\cf2 \strokec2 meta\cf5 \strokec5  \cf4 \strokec4 charset\cf6 \strokec6 =\cf7 \strokec7 "UTF-8"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 <\cf2 \strokec2 meta\cf5 \strokec5  \cf4 \strokec4 name\cf6 \strokec6 =\cf7 \strokec7 "viewport"\cf5 \strokec5  \cf4 \strokec4 content\cf6 \strokec6 =\cf7 \strokec7 "width=device-width, initial-scale=1.0"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 <\cf2 \strokec2 title\cf6 \strokec6 >\cf5 \strokec5 \uc0\u26085 \u26310 \u29256 \u24037 \u20316 \u35352 \u37636 \u30475 \u26495 \cf6 \strokec6 </\cf2 \strokec2 title\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 <\cf2 \strokec2 script\cf5 \strokec5  \cf4 \strokec4 src\cf6 \strokec6 =\cf7 \strokec7 "https://cdn.tailwindcss.com"\cf6 \strokec6 ></\cf2 \strokec2 script\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 <\cf2 \strokec2 script\cf5 \strokec5  \cf4 \strokec4 src\cf6 \strokec6 =\cf7 \strokec7 "https://unpkg.com/lucide@latest"\cf6 \strokec6 ></\cf2 \strokec2 script\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 <\cf2 \strokec2 style\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cf2 \strokec2 .task-card\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 cursor:\cf5 \strokec5  \cf7 \strokec7 grab\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 transition:\cf5 \strokec5  \cf7 \strokec7 transform\cf5 \strokec5  \cf9 \strokec9 0.1s\cf5 \strokec5  \cf7 \strokec7 ease\cf8 \strokec8 ,\cf5 \strokec5  \cf7 \strokec7 box-shadow\cf5 \strokec5  \cf9 \strokec9 0.1s\cf5 \strokec5  \cf7 \strokec7 ease\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cf2 \strokec2 .task-card:active\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 cursor:\cf5 \strokec5  \cf7 \strokec7 grabbing\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 transform:\cf5 \strokec5  \cf7 \strokec7 scale(\cf9 \strokec9 0.98\cf7 \strokec7 )\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cf2 \strokec2 .task-card.dragging\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 opacity:\cf5 \strokec5  \cf9 \strokec9 0.5\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 box-shadow:\cf5 \strokec5  \cf9 \strokec9 0\cf5 \strokec5  \cf9 \strokec9 10px\cf5 \strokec5  \cf9 \strokec9 15px\cf5 \strokec5  \cf9 \strokec9 -3px\cf5 \strokec5  \cf7 \strokec7 rgba(\cf9 \strokec9 0\cf8 \strokec8 ,\cf5 \strokec5  \cf9 \strokec9 0\cf8 \strokec8 ,\cf5 \strokec5  \cf9 \strokec9 0\cf8 \strokec8 ,\cf5 \strokec5  \cf9 \strokec9 0.1\cf7 \strokec7 )\cf8 \strokec8 ,\cf5 \strokec5  \cf9 \strokec9 0\cf5 \strokec5  \cf9 \strokec9 4px\cf5 \strokec5  \cf9 \strokec9 6px\cf5 \strokec5  \cf9 \strokec9 -2px\cf5 \strokec5  \cf7 \strokec7 rgba(\cf9 \strokec9 0\cf8 \strokec8 ,\cf5 \strokec5  \cf9 \strokec9 0\cf8 \strokec8 ,\cf5 \strokec5  \cf9 \strokec9 0\cf8 \strokec8 ,\cf5 \strokec5  \cf9 \strokec9 0.05\cf7 \strokec7 )\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cf2 \strokec2 .column-drop-zone\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 min-height:\cf5 \strokec5  \cf9 \strokec9 150px\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 transition:\cf5 \strokec5  \cf7 \strokec7 background-color\cf5 \strokec5  \cf9 \strokec9 0.2s\cf5 \strokec5  \cf7 \strokec7 ease\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cf2 \strokec2 .column-drop-zone.drag-over\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 background-color:\cf5 \strokec5  #e2e8f0\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 border:\cf5 \strokec5  \cf9 \strokec9 2px\cf5 \strokec5  \cf7 \strokec7 dashed\cf5 \strokec5  #94a3b8\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 border-radius:\cf5 \strokec5  \cf9 \strokec9 0.5rem\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cf2 \strokec2 .no-scrollbar::-webkit-scrollbar\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  \cf4 \strokec4 display:\cf5 \strokec5  \cf7 \strokec7 none\cf8 \strokec8 ;\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cf2 \strokec2 .no-scrollbar\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  \cf4 \strokec4 -ms-overflow-style:\cf5 \strokec5  \cf7 \strokec7 none\cf8 \strokec8 ;\cf5 \strokec5  \cf4 \strokec4 scrollbar-width:\cf5 \strokec5  \cf7 \strokec7 none\cf8 \strokec8 ;\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cb1 \
-\cb3         \cf10 \strokec10 /* \uc0\u26085 \u26310 \u32178 \u26684 \u27171 \u24335  */\cf5 \cb1 \strokec5 \
-\cb3         \cf2 \strokec2 .calendar-grid\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 display:\cf5 \strokec5  \cf7 \strokec7 grid\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 grid-template-columns:\cf5 \strokec5  \cf7 \strokec7 repeat(\cf9 \strokec9 7\cf8 \strokec8 ,\cf5 \strokec5  \cf9 \strokec9 1fr\cf7 \strokec7 )\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf4 \strokec4 gap:\cf5 \strokec5  \cf9 \strokec9 4px\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 </\cf2 \strokec2 style\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 <\cf2 \strokec2 script\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         tailwind\cf8 \strokec8 .\cf5 \strokec5 config \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             theme\cf8 \strokec8 :\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 extend\cf8 \strokec8 :\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                     colors\cf8 \strokec8 :\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                         brand\cf8 \strokec8 :\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                             \cf11 \strokec11 50\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 '#f0fdfa'\cf8 \strokec8 ,\cf5 \strokec5  \cf11 \strokec11 100\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 '#ccfbf1'\cf8 \strokec8 ,\cf5 \strokec5  \cf11 \strokec11 500\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 '#14b8a6'\cf8 \strokec8 ,\cf5 \strokec5  \cf11 \strokec11 600\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 '#0d9488'\cf8 \strokec8 ,\cf5 \strokec5  \cf11 \strokec11 900\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 '#134e4a'\cf8 \strokec8 ,\cf5 \cb1 \strokec5 \
-\cb3                         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3                     \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 </\cf2 \strokec2 script\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\pard\pardeftab720\partightenfactor0
-\cf6 \cb3 \strokec6 </\cf2 \strokec2 head\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cf6 \cb3 \strokec6 <\cf2 \strokec2 body\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\
-\pard\pardeftab720\partightenfactor0
-\cf5 \cb3     \cf10 \strokec10 <!-- \uc0\u38914 \u37096 \u23566 \u35261  -->\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 <\cf2 \strokec2 header\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 shrink-0"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex items-center gap-3"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-brand-500 text-white p-2 rounded-lg"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "calendar-days"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 h1\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "text-xl font-bold text-slate-800"\cf6 \strokec6 >\cf5 \strokec5 \uc0\u26085 \u26310 \u24037 \u20316 \u30475 \u26495 \cf6 \strokec6 </\cf2 \strokec2 h1\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cb1 \
-\cb3         \cf6 \strokec6 <\cf2 \strokec2 button\cf5 \strokec5  \cf4 \strokec4 onclick\cf6 \strokec6 =\cf7 \strokec7 "exportReport()"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors text-sm"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "clipboard-copy"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-4 h-4"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "hidden sm:inline"\cf6 \strokec6 >\cf5 \strokec5 \uc0\u21295 \u20986 \u21934 \u26085 \u22577 \u34920 \cf6 \strokec6 </\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cf6 \strokec6 </\cf2 \strokec2 button\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 </\cf2 \strokec2 header\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\
-\cb3     \cf10 \strokec10 <!-- \uc0\u20027 \u35201 \u20839 \u23481 \u21312  (\u20596 \u37002 \u26085 \u26310  + \u21491 \u20596 \u30475 \u26495 ) -->\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 <\cf2 \strokec2 main\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex-1 overflow-auto p-4 sm:p-6 flex flex-col lg:flex-row gap-6"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cb1 \
-\cb3         \cf10 \strokec10 <!-- \uc0\u24038 \u20596 \u65306 \u26085 \u26310 \u33287 \u25976 \u25818  -->\cf5 \cb1 \strokec5 \
-\cb3         \cf6 \strokec6 <\cf2 \strokec2 aside\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-full lg:w-80 shrink-0 flex flex-col gap-6"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf10 \strokec10 <!-- \uc0\u26085 \u26310 \u27169 \u32068  -->\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-white p-5 rounded-xl shadow-sm border border-slate-100"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex justify-between items-center mb-4"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 button\cf5 \strokec5  \cf4 \strokec4 onclick\cf6 \strokec6 =\cf7 \strokec7 "changeMonth(-1)"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "p-1 hover:bg-slate-100 rounded text-slate-500"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "chevron-left"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-5 h-5"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 </\cf2 \strokec2 button\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 h2\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "calendar-month-year"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "font-bold text-slate-700"\cf6 \strokec6 >\cf5 \strokec5 2023\uc0\u24180  10\u26376 \cf6 \strokec6 </\cf2 \strokec2 h2\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 button\cf5 \strokec5  \cf4 \strokec4 onclick\cf6 \strokec6 =\cf7 \strokec7 "changeMonth(1)"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "p-1 hover:bg-slate-100 rounded text-slate-500"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "chevron-right"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-5 h-5"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 </\cf2 \strokec2 button\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cb1 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "calendar-grid text-center text-xs font-medium text-slate-400 mb-2"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \strokec5 \uc0\u26085 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 ><\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \strokec5 \uc0\u19968 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 ><\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \strokec5 \uc0\u20108 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 ><\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \strokec5 \uc0\u19977 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 ><\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \strokec5 \uc0\u22235 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 ><\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \strokec5 \uc0\u20116 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 ><\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \strokec5 \uc0\u20845 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cb1 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "calendar-days"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "calendar-grid"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf10 \strokec10 <!-- \uc0\u26085 \u26310 \u22825 \u25976 \u30001  JS \u29983 \u25104  -->\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cb1 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "mt-4 pt-4 border-t border-slate-100 flex justify-between items-center"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 button\cf5 \strokec5  \cf4 \strokec4 onclick\cf6 \strokec6 =\cf7 \strokec7 "goToToday()"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 px-3 py-1.5 rounded"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \uc0\u22238 \u21040 \u20170 \u22825 \cb1 \
-\cb3                     \cf6 \strokec6 </\cf2 \strokec2 button\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex items-center gap-2 text-xs text-slate-500"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex items-center gap-1"\cf6 \strokec6 ><\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-1.5 h-1.5 rounded-full bg-slate-300"\cf6 \strokec6 ></\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \strokec5  \uc0\u24453 \u36774 \cf6 \strokec6 </\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex items-center gap-1"\cf6 \strokec6 ><\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-1.5 h-1.5 rounded-full bg-brand-500"\cf6 \strokec6 ></\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \strokec5  \uc0\u23436 \u25104 \cf6 \strokec6 </\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf10 \strokec10 <!-- \uc0\u36984 \u23450 \u26085 \u26399 \u30340 \u36914 \u24230 \u36861 \u36452  -->\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-white p-5 rounded-xl shadow-sm border border-slate-100"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 h3\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "pie-chart"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-4 h-4 text-brand-500"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \strokec5  \uc0\u21934 \u26085 \u20219 \u21209 \u36914 \u24230 \cb1 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 h3\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex justify-between text-2xl font-bold mb-1"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "progress-text"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "text-brand-600"\cf6 \strokec6 >\cf5 \strokec5 0%\cf6 \strokec6 </\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "task-count-text"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "text-slate-400 text-sm font-medium self-end mb-1"\cf6 \strokec6 >\cf5 \strokec5 0 / 0 \uc0\u38917 \cf6 \strokec6 </\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-full bg-slate-100 rounded-full h-3 overflow-hidden"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "progress-bar"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-brand-500 h-3 rounded-full transition-all duration-500"\cf5 \strokec5  \cf4 \strokec4 style\cf6 \strokec6 =\cf7 \strokec7 "width: 0%"\cf6 \strokec6 ></\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cf6 \strokec6 </\cf2 \strokec2 aside\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf10 \strokec10 <!-- \uc0\u21491 \u20596 \u65306 \u20219 \u21209 \u30475 \u26495  -->\cf5 \cb1 \strokec5 \
-\cb3         \cf6 \strokec6 <\cf2 \strokec2 section\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex-1 flex flex-col min-w-0"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             \cf10 \strokec10 <!-- \uc0\u26085 \u26399 \u27161 \u38988 \u33287 \u36664 \u20837 \u21312  -->\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "mb-6"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 h2\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "selected-date-title"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf10 \strokec10 <!-- \uc0\u26085 \u26399 \u27161 \u38988 \u30001  JS \u29983 \u25104  -->\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 h2\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cb1 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col xl:flex-row gap-3"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex-1 flex flex-col gap-2"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "relative flex-1"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                             \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                                 \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "plus-circle"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-5 h-5 text-slate-400"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                             \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                             \cf6 \strokec6 <\cf2 \strokec2 input\cf5 \strokec5  \cf4 \strokec4 type\cf6 \strokec6 =\cf7 \strokec7 "text"\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "task-input"\cf5 \strokec5  \cf4 \strokec4 placeholder\cf6 \strokec6 =\cf7 \strokec7 "\uc0\u36889 \u22825 \u38656 \u35201 \u20570 \u20123 \u20160 \u40636 \u65311  (\u25353  Enter \u24555 \u36895 \u26032 \u22686 )"\cf5 \strokec5  \cb1 \
-\cb3                                    \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-colors"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 textarea\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "task-desc-input"\cf5 \strokec5  \cf4 \strokec4 placeholder\cf6 \strokec6 =\cf7 \strokec7 "\uc0\u20219 \u21209 \u35443 \u32048 \u20839 \u23481 \u25110 \u20633 \u35387  (\u36984 \u22635 )..."\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all resize-none h-10 focus:h-20 text-sm no-scrollbar"\cf6 \strokec6 ></\cf2 \strokec2 textarea\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cb1 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex gap-3 h-[46px] mt-1 xl:mt-0 shrink-0"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 select\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "category-input"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium text-slate-700 cursor-pointer"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                             \cf10 \strokec10 <!-- \uc0\u20998 \u39006 \u30001  JS \u29983 \u25104  -->\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 </\cf2 \strokec2 select\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 button\cf5 \strokec5  \cf4 \strokec4 onclick\cf6 \strokec6 =\cf7 \strokec7 "openCategoryModal()"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 flex items-center justify-center"\cf5 \strokec5  \cf4 \strokec4 title\cf6 \strokec6 =\cf7 \strokec7 "\uc0\u31649 \u29702 \u24037 \u20316 \u20998 \u39006 "\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                             \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "settings-2"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-5 h-5"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 </\cf2 \strokec2 button\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 button\cf5 \strokec5  \cf4 \strokec4 onclick\cf6 \strokec6 =\cf7 \strokec7 "addTask()"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-brand-500 hover:bg-brand-600 text-white px-6 rounded-lg font-medium transition-colors shadow-sm shadow-brand-500/30 whitespace-nowrap"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                             \uc0\u26032 \u22686 \u20219 \u21209 \cb1 \
-\cb3                         \cf6 \strokec6 </\cf2 \strokec2 button\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf10 \strokec10 <!-- \uc0\u30475 \u26495 \u21312  -->\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex flex-col md:flex-row gap-4 lg:gap-6 flex-1 min-h-0"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf10 \strokec10 <!-- \uc0\u24453 \u36774  (To Do) -->\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex-1 flex flex-col bg-slate-100 rounded-xl overflow-hidden border border-slate-200"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "p-3 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center shrink-0"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 h3\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "font-bold text-slate-700 flex items-center gap-2 text-sm"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                             \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-2.5 h-2.5 rounded-full bg-slate-400"\cf6 \strokec6 ></\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \strokec5  \uc0\u24453 \u36774  (To Do)\cb1 \
-\cb3                         \cf6 \strokec6 </\cf2 \strokec2 h3\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "count-todo"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-slate-200 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full"\cf6 \strokec6 >\cf5 \strokec5 0\cf6 \strokec6 </\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone"\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "todo"\cf5 \strokec5  \cf4 \strokec4 data-status\cf6 \strokec6 =\cf7 \strokec7 "todo"\cf6 \strokec6 ></\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\
-\cb3                 \cf10 \strokec10 <!-- \uc0\u36914 \u34892 \u20013  (In Progress) -->\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex-1 flex flex-col bg-blue-50 rounded-xl overflow-hidden border border-blue-100"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "p-3 border-b border-blue-100 bg-white/50 flex justify-between items-center shrink-0"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 h3\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "font-bold text-blue-800 flex items-center gap-2 text-sm"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                             \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-2.5 h-2.5 rounded-full bg-blue-500"\cf6 \strokec6 ></\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \strokec5  \uc0\u36914 \u34892 \u20013  (Doing)\cb1 \
-\cb3                         \cf6 \strokec6 </\cf2 \strokec2 h3\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "count-inprogress"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-blue-200 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full"\cf6 \strokec6 >\cf5 \strokec5 0\cf6 \strokec6 </\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone"\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "inprogress"\cf5 \strokec5  \cf4 \strokec4 data-status\cf6 \strokec6 =\cf7 \strokec7 "inprogress"\cf6 \strokec6 ></\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\
-\cb3                 \cf10 \strokec10 <!-- \uc0\u24050 \u23436 \u25104  (Done) -->\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex-1 flex flex-col bg-brand-50 rounded-xl overflow-hidden border border-brand-100"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "p-3 border-b border-brand-100 bg-white/50 flex justify-between items-center shrink-0"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 h3\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "font-bold text-brand-800 flex items-center gap-2 text-sm"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                             \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-2.5 h-2.5 rounded-full bg-brand-500"\cf6 \strokec6 ></\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \strokec5  \uc0\u24050 \u23436 \u25104  (Done)\cb1 \
-\cb3                         \cf6 \strokec6 </\cf2 \strokec2 h3\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "count-done"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-brand-200 text-brand-800 text-xs font-bold px-2 py-0.5 rounded-full"\cf6 \strokec6 >\cf5 \strokec5 0\cf6 \strokec6 </\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone"\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "done"\cf5 \strokec5  \cf4 \strokec4 data-status\cf6 \strokec6 =\cf7 \strokec7 "done"\cf6 \strokec6 ></\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3         \cf6 \strokec6 </\cf2 \strokec2 section\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 </\cf2 \strokec2 main\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\
-\cb3     \cf10 \strokec10 <!-- \uc0\u20998 \u39006 \u31649 \u29702  Modal (\u32173 \u25345 \u21407 \u26412 \u21151 \u33021 ) -->\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "category-modal"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 opacity-0 transition-opacity duration-300"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-white rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden flex flex-col transform scale-95 transition-transform duration-300"\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "category-modal-content"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 h3\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "font-bold text-slate-800 flex items-center gap-2"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "tags"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-5 h-5 text-brand-500"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \strokec5  \uc0\u31649 \u29702 \u24037 \u20316 \u20998 \u39006 \cb1 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 h3\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 button\cf5 \strokec5  \cf4 \strokec4 onclick\cf6 \strokec6 =\cf7 \strokec7 "closeCategoryModal()"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "text-slate-400 hover:text-slate-600 transition-colors"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "x"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-5 h-5"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 button\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "p-6 flex-1 overflow-y-auto max-h-[50vh]"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 ul\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "category-list"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex flex-col gap-2"\cf6 \strokec6 ></\cf2 \strokec2 ul\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "p-6 border-t border-slate-100 bg-slate-50"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 h4\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "plus"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-4 h-4"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \strokec5  \uc0\u26032 \u22686 \u20998 \u39006 \cb1 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 h4\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex flex-col gap-3"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 input\cf5 \strokec5  \cf4 \strokec4 type\cf6 \strokec6 =\cf7 \strokec7 "text"\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "new-category-name"\cf5 \strokec5  \cf4 \strokec4 placeholder\cf6 \strokec6 =\cf7 \strokec7 "\uc0\u36664 \u20837 \u20998 \u39006 \u21517 \u31281 "\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex gap-3 items-center"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "text-xs font-medium text-slate-500"\cf6 \strokec6 >\cf5 \strokec5 \uc0\u36984 \u25799 \u38991 \u33394 \u65306 \cf6 \strokec6 </\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "color-picker"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "flex gap-2 flex-wrap"\cf6 \strokec6 ></\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 button\cf5 \strokec5  \cf4 \strokec4 onclick\cf6 \strokec6 =\cf7 \strokec7 "addNewCategory()"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-full mt-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \uc0\u26032 \u22686 \u20998 \u39006 \cb1 \
-\cb3                     \cf6 \strokec6 </\cf2 \strokec2 button\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\
-\cb3     \cf10 \strokec10 <!-- \uc0\u32232 \u36655 \u20219 \u21209  Modal -->\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "edit-modal"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 opacity-0 transition-opacity duration-300"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 overflow-hidden flex flex-col transform scale-95 transition-transform duration-300"\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "edit-modal-content"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 h3\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "font-bold text-slate-800 flex items-center gap-2"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "edit"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-5 h-5 text-brand-500"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \strokec5  \uc0\u32232 \u36655 \u20219 \u21209 \cb1 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 h3\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 button\cf5 \strokec5  \cf4 \strokec4 onclick\cf6 \strokec6 =\cf7 \strokec7 "closeEditModal()"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "text-slate-400 hover:text-slate-600 transition-colors"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "x"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-5 h-5"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 button\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "p-6 flex flex-col gap-4"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 label\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "block text-sm font-medium text-slate-700 mb-1"\cf6 \strokec6 >\cf5 \strokec5 \uc0\u20219 \u21209 \u27161 \u38988 \cf6 \strokec6 </\cf2 \strokec2 label\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 input\cf5 \strokec5  \cf4 \strokec4 type\cf6 \strokec6 =\cf7 \strokec7 "text"\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "edit-task-title"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 label\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "block text-sm font-medium text-slate-700 mb-1"\cf6 \strokec6 >\cf5 \strokec5 \uc0\u24037 \u20316 \u20998 \u39006 \cf6 \strokec6 </\cf2 \strokec2 label\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 select\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "edit-task-category"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                         \cf10 \strokec10 <!-- \uc0\u21205 \u24907 \u29983 \u25104  -->\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 </\cf2 \strokec2 select\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 label\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "block text-sm font-medium text-slate-700 mb-1"\cf6 \strokec6 >\cf5 \strokec5 \uc0\u35443 \u32048 \u20839 \u23481 \cf6 \strokec6 </\cf2 \strokec2 label\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                     \cf6 \strokec6 <\cf2 \strokec2 textarea\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "edit-task-desc"\cf5 \strokec5  \cf4 \strokec4 rows\cf6 \strokec6 =\cf7 \strokec7 "4"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"\cf6 \strokec6 ></\cf2 \strokec2 textarea\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 button\cf5 \strokec5  \cf4 \strokec4 onclick\cf6 \strokec6 =\cf7 \strokec7 "closeEditModal()"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-lg transition-colors"\cf6 \strokec6 >\cf5 \strokec5 \uc0\u21462 \u28040 \cf6 \strokec6 </\cf2 \strokec2 button\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3                 \cf6 \strokec6 <\cf2 \strokec2 button\cf5 \strokec5  \cf4 \strokec4 onclick\cf6 \strokec6 =\cf7 \strokec7 "saveEditedTask()"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "px-4 py-2 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm"\cf6 \strokec6 >\cf5 \strokec5 \uc0\u20786 \u23384 \u35722 \u26356 \cf6 \strokec6 </\cf2 \strokec2 button\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3             \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\
-\cb3     \cf10 \strokec10 <!-- \uc0\u35338 \u24687 \u25552 \u31034  -->\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 <\cf2 \strokec2 div\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "toast"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50"\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cf6 \strokec6 <\cf2 \strokec2 i\cf5 \strokec5  \cf4 \strokec4 data-lucide\cf6 \strokec6 =\cf7 \strokec7 "check-circle-2"\cf5 \strokec5  \cf4 \strokec4 class\cf6 \strokec6 =\cf7 \strokec7 "text-brand-400"\cf6 \strokec6 ></\cf2 \strokec2 i\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cf6 \strokec6 <\cf2 \strokec2 span\cf5 \strokec5  \cf4 \strokec4 id\cf6 \strokec6 =\cf7 \strokec7 "toast-message"\cf6 \strokec6 >\cf5 \strokec5 \uc0\u35338 \u24687 \cf6 \strokec6 </\cf2 \strokec2 span\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 </\cf2 \strokec2 div\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\
-\cb3     \cf6 \strokec6 <\cf2 \strokec2 script\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cb3         \cf10 \strokec10 // \uc0\u26085 \u26399 \u33287 \u29376 \u24907 \u31649 \u29702 \cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 let\cf5 \strokec5  tasks \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 [];\cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 let\cf5 \strokec5  categories \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 [];\cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 const\cf5 \strokec5  \cf14 \strokec14 STORAGE_KEY\cf5 \strokec5  \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 'daily_tasks_data_v2'\cf8 \strokec8 ;\cf5 \strokec5  \cf10 \strokec10 // \uc0\u26356 \u26032  key \u36991 \u20813 \u33290 \u29256 \u26684 \u24335 \u34909 \u31361 \cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 const\cf5 \strokec5  \cf14 \strokec14 STORAGE_KEY_CATS\cf5 \strokec5  \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 'daily_tasks_categories'\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3         \cb1 \
-\cb3         \cf13 \strokec13 let\cf5 \strokec5  displayDate \cf8 \strokec8 =\cf5 \strokec5  \cf13 \strokec13 new\cf5 \strokec5  \cf14 \strokec14 Date\cf8 \strokec8 ();\cf5 \strokec5  \cf10 \strokec10 // \uc0\u26085 \u26310 \u39023 \u31034 \u30340 \u26376 \u20221 \cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 let\cf5 \strokec5  selectedDateStr \cf8 \strokec8 =\cf5 \strokec5  getLocalISODate\cf8 \strokec8 (\cf13 \strokec13 new\cf5 \strokec5  \cf14 \strokec14 Date\cf8 \strokec8 ());\cf5 \strokec5  \cf10 \strokec10 // \uc0\u30070 \u21069 \u36984 \u20013 \u32232 \u36655 \u30340 \u26085 \u26399  (YYYY-MM-DD)\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 const\cf5 \strokec5  colorThemes \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 [\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \{\cf5 \strokec5  value\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'purple'\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 class\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-purple-100 text-purple-700 border-purple-200'\cf8 \strokec8 ,\cf5 \strokec5  dotClass\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-purple-500 ring-purple-500'\cf5 \strokec5  \cf8 \strokec8 \},\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \{\cf5 \strokec5  value\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'blue'\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 class\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-blue-100 text-blue-700 border-blue-200'\cf8 \strokec8 ,\cf5 \strokec5  dotClass\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-blue-500 ring-blue-500'\cf5 \strokec5  \cf8 \strokec8 \},\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \{\cf5 \strokec5  value\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'emerald'\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 class\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-emerald-100 text-emerald-700 border-emerald-200'\cf8 \strokec8 ,\cf5 \strokec5  dotClass\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-emerald-500 ring-emerald-500'\cf5 \strokec5  \cf8 \strokec8 \},\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \{\cf5 \strokec5  value\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'amber'\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 class\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-amber-100 text-amber-700 border-amber-200'\cf8 \strokec8 ,\cf5 \strokec5  dotClass\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-amber-500 ring-amber-500'\cf5 \strokec5  \cf8 \strokec8 \},\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \{\cf5 \strokec5  value\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'rose'\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 class\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-rose-100 text-rose-700 border-rose-200'\cf8 \strokec8 ,\cf5 \strokec5  dotClass\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-rose-500 ring-rose-500'\cf5 \strokec5  \cf8 \strokec8 \},\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \{\cf5 \strokec5  value\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'slate'\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 class\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-slate-100 text-slate-700 border-slate-200'\cf8 \strokec8 ,\cf5 \strokec5  dotClass\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-slate-500 ring-slate-500'\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 ];\cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 let\cf5 \strokec5  selectedNewCategoryColor \cf8 \strokec8 =\cf5 \strokec5  colorThemes\cf8 \strokec8 [\cf11 \strokec11 0\cf8 \strokec8 ];\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf10 \strokec10 // \uc0\u21462 \u24471 \u26412 \u22320 \u26178 \u21312 \u30340  YYYY-MM-DD \u23383 \u20018 \cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  getLocalISODate\cf8 \strokec8 (\cf5 \strokec5 dateObj\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  tzOffset \cf8 \strokec8 =\cf5 \strokec5  dateObj\cf8 \strokec8 .\cf5 \strokec5 getTimezoneOffset\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 *\cf5 \strokec5  \cf11 \strokec11 60000\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 return\cf5 \strokec5  \cf13 \strokec13 new\cf5 \strokec5  \cf14 \strokec14 Date\cf8 \strokec8 (\cf5 \strokec5 dateObj \cf8 \strokec8 -\cf5 \strokec5  tzOffset\cf8 \strokec8 ).\cf5 \strokec5 toISOString\cf8 \strokec8 ().\cf5 \strokec5 split\cf8 \strokec8 (\cf12 \strokec12 'T'\cf8 \strokec8 )[\cf11 \strokec11 0\cf8 \strokec8 ];\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf10 \strokec10 // \uc0\u21021 \u22987 \u21270 \cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  init\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             lucide\cf8 \strokec8 .\cf5 \strokec5 createIcons\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             loadCategories\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             loadData\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'task-input'\cf8 \strokec8 ).\cf5 \strokec5 addEventListener\cf8 \strokec8 (\cf12 \strokec12 'keypress'\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 function\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 e\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 e\cf8 \strokec8 .\cf5 \strokec5 key \cf8 \strokec8 ===\cf5 \strokec5  \cf12 \strokec12 'Enter'\cf8 \strokec8 )\cf5 \strokec5  addTask\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\cb3             setupDragAndDrop\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf10 \strokec10 // \uc0\u36039 \u26009 \u35712 \u21462 \u33287 \u36681 \u31227 \cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  loadData\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  saved \cf8 \strokec8 =\cf5 \strokec5  localStorage\cf8 \strokec8 .\cf5 \strokec5 getItem\cf8 \strokec8 (\cf14 \strokec14 STORAGE_KEY\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 saved\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 try\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  tasks \cf8 \strokec8 =\cf5 \strokec5  \cf14 \strokec14 JSON\cf8 \strokec8 .\cf5 \strokec5 parse\cf8 \strokec8 (\cf5 \strokec5 saved\cf8 \strokec8 );\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \strokec5  \cf13 \strokec13 catch\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 e\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  tasks \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 [];\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \}\cf5 \strokec5  \cf13 \strokec13 else\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 \cf10 \strokec10 // \uc0\u22039 \u35430 \u35712 \u21462 \u33290 \u29256 \u36039 \u26009 \u20006 \u36914 \u34892 \u36681 \u31227  (\u21152 \u20837  date \u23660 \u24615 )\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  oldSaved \cf8 \strokec8 =\cf5 \strokec5  localStorage\cf8 \strokec8 .\cf5 \strokec5 getItem\cf8 \strokec8 (\cf12 \strokec12 'daily_tasks_data'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 oldSaved\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                     \cf13 \strokec13 try\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                         \cf13 \strokec13 const\cf5 \strokec5  oldTasks \cf8 \strokec8 =\cf5 \strokec5  \cf14 \strokec14 JSON\cf8 \strokec8 .\cf5 \strokec5 parse\cf8 \strokec8 (\cf5 \strokec5 oldSaved\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                         tasks \cf8 \strokec8 =\cf5 \strokec5  oldTasks\cf8 \strokec8 .\cf5 \strokec5 map\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 (\{\cf5 \cb1 \strokec5 \
-\cb3                             \cf8 \strokec8 ...\cf5 \strokec5 t\cf8 \strokec8 ,\cf5 \cb1 \strokec5 \
-\cb3                             date\cf8 \strokec8 :\cf5 \strokec5  t\cf8 \strokec8 .\cf5 \strokec5 date \cf8 \strokec8 ||\cf5 \strokec5  getLocalISODate\cf8 \strokec8 (\cf13 \strokec13 new\cf5 \strokec5  \cf14 \strokec14 Date\cf8 \strokec8 (\cf5 \strokec5 t\cf8 \strokec8 .\cf5 \strokec5 timestamp \cf8 \strokec8 ||\cf5 \strokec5  \cf14 \strokec14 Date\cf8 \strokec8 .\cf5 \strokec5 now\cf8 \strokec8 ()))\cf5 \cb1 \strokec5 \
-\cb3                         \cf8 \strokec8 \}));\cf5 \cb1 \strokec5 \
-\cb3                         saveData\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3                     \cf8 \strokec8 \}\cf5 \strokec5  \cf13 \strokec13 catch\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 e\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  tasks \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 [];\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3             refreshView\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  saveData\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             localStorage\cf8 \strokec8 .\cf5 \strokec5 setItem\cf8 \strokec8 (\cf14 \strokec14 STORAGE_KEY\cf8 \strokec8 ,\cf5 \strokec5  \cf14 \strokec14 JSON\cf8 \strokec8 .\cf5 \strokec5 stringify\cf8 \strokec8 (\cf5 \strokec5 tasks\cf8 \strokec8 ));\cf5 \cb1 \strokec5 \
-\cb3             refreshView\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf10 \strokec10 // \uc0\u30059 \u38754 \u21047 \u26032 \u32317 \u25511 \cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  refreshView\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             renderCalendar\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             updateUI\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf10 \strokec10 // --- \uc0\u26085 \u26310 \u21151 \u33021  ---\cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  changeMonth\cf8 \strokec8 (\cf5 \strokec5 offset\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             displayDate\cf8 \strokec8 .\cf5 \strokec5 setMonth\cf8 \strokec8 (\cf5 \strokec5 displayDate\cf8 \strokec8 .\cf5 \strokec5 getMonth\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 +\cf5 \strokec5  offset\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             renderCalendar\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  goToToday\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             displayDate \cf8 \strokec8 =\cf5 \strokec5  \cf13 \strokec13 new\cf5 \strokec5  \cf14 \strokec14 Date\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             selectedDateStr \cf8 \strokec8 =\cf5 \strokec5  getLocalISODate\cf8 \strokec8 (\cf5 \strokec5 displayDate\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             refreshView\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  selectDate\cf8 \strokec8 (\cf5 \strokec5 dateStr\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             selectedDateStr \cf8 \strokec8 =\cf5 \strokec5  dateStr\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             updateUI\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             renderCalendar\cf8 \strokec8 ();\cf5 \strokec5  \cf10 \strokec10 // \uc0\u26356 \u26032 \u36984 \u20013 \u29376 \u24907 \cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  renderCalendar\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  grid \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'calendar-days'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             grid\cf8 \strokec8 .\cf5 \strokec5 innerHTML \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  year \cf8 \strokec8 =\cf5 \strokec5  displayDate\cf8 \strokec8 .\cf5 \strokec5 getFullYear\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  month \cf8 \strokec8 =\cf5 \strokec5  displayDate\cf8 \strokec8 .\cf5 \strokec5 getMonth\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'calendar-month-year'\cf8 \strokec8 ).\cf5 \strokec5 textContent \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 `\cf8 \strokec8 $\{\cf5 \strokec5 year\cf8 \strokec8 \}\cf12 \strokec12 \uc0\u24180  \cf8 \strokec8 $\{\cf5 \strokec5 month \cf8 \strokec8 +\cf5 \strokec5  \cf11 \strokec11 1\cf8 \strokec8 \}\cf12 \strokec12 \uc0\u26376 `\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  firstDay \cf8 \strokec8 =\cf5 \strokec5  \cf13 \strokec13 new\cf5 \strokec5  \cf14 \strokec14 Date\cf8 \strokec8 (\cf5 \strokec5 year\cf8 \strokec8 ,\cf5 \strokec5  month\cf8 \strokec8 ,\cf5 \strokec5  \cf11 \strokec11 1\cf8 \strokec8 ).\cf5 \strokec5 getDay\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  daysInMonth \cf8 \strokec8 =\cf5 \strokec5  \cf13 \strokec13 new\cf5 \strokec5  \cf14 \strokec14 Date\cf8 \strokec8 (\cf5 \strokec5 year\cf8 \strokec8 ,\cf5 \strokec5  month \cf8 \strokec8 +\cf5 \strokec5  \cf11 \strokec11 1\cf8 \strokec8 ,\cf5 \strokec5  \cf11 \strokec11 0\cf8 \strokec8 ).\cf5 \strokec5 getDate\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  todayStr \cf8 \strokec8 =\cf5 \strokec5  getLocalISODate\cf8 \strokec8 (\cf13 \strokec13 new\cf5 \strokec5  \cf14 \strokec14 Date\cf8 \strokec8 ());\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf10 \strokec10 // \uc0\u22635 \u20805 \u19978 \u20491 \u26376 \u30340 \u31354 \u30333 \cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 for\cf5 \strokec5  \cf8 \strokec8 (\cf13 \strokec13 let\cf5 \strokec5  i \cf8 \strokec8 =\cf5 \strokec5  \cf11 \strokec11 0\cf8 \strokec8 ;\cf5 \strokec5  i \cf8 \strokec8 <\cf5 \strokec5  firstDay\cf8 \strokec8 ;\cf5 \strokec5  i\cf8 \strokec8 ++)\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 grid\cf8 \strokec8 .\cf5 \strokec5 innerHTML \cf8 \strokec8 +=\cf5 \strokec5  \cf12 \strokec12 `<div class="p-2"></div>`\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf10 \strokec10 // \uc0\u28210 \u26579 \u30070 \u26376 \u22825 \u25976 \cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 for\cf5 \strokec5  \cf8 \strokec8 (\cf13 \strokec13 let\cf5 \strokec5  i \cf8 \strokec8 =\cf5 \strokec5  \cf11 \strokec11 1\cf8 \strokec8 ;\cf5 \strokec5  i \cf8 \strokec8 <=\cf5 \strokec5  daysInMonth\cf8 \strokec8 ;\cf5 \strokec5  i\cf8 \strokec8 ++)\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  dateStr \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 `\cf8 \strokec8 $\{\cf5 \strokec5 year\cf8 \strokec8 \}\cf12 \strokec12 -\cf8 \strokec8 $\{\cf14 \strokec14 String\cf8 \strokec8 (\cf5 \strokec5 month \cf8 \strokec8 +\cf5 \strokec5  \cf11 \strokec11 1\cf8 \strokec8 ).\cf5 \strokec5 padStart\cf8 \strokec8 (\cf11 \strokec11 2\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 '0'\cf8 \strokec8 )\}\cf12 \strokec12 -\cf8 \strokec8 $\{\cf14 \strokec14 String\cf8 \strokec8 (\cf5 \strokec5 i\cf8 \strokec8 ).\cf5 \strokec5 padStart\cf8 \strokec8 (\cf11 \strokec11 2\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 '0'\cf8 \strokec8 )\}\cf12 \strokec12 `\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  isSelected \cf8 \strokec8 =\cf5 \strokec5  dateStr \cf8 \strokec8 ===\cf5 \strokec5  selectedDateStr\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  isToday \cf8 \strokec8 =\cf5 \strokec5  dateStr \cf8 \strokec8 ===\cf5 \strokec5  todayStr\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cb1 \
-\cb3                 \cf10 \strokec10 // \uc0\u35336 \u31639 \u35442 \u26085 \u30340 \u20219 \u21209 \u29376 \u27841  (\u29986 \u29983 \u23567 \u40670 \u40670 )\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  dayTasks \cf8 \strokec8 =\cf5 \strokec5  tasks\cf8 \strokec8 .\cf5 \strokec5 filter\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  t\cf8 \strokec8 .\cf5 \strokec5 date \cf8 \strokec8 ===\cf5 \strokec5  dateStr\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  doneTasks \cf8 \strokec8 =\cf5 \strokec5  dayTasks\cf8 \strokec8 .\cf5 \strokec5 filter\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  t\cf8 \strokec8 .\cf5 \strokec5 status \cf8 \strokec8 ===\cf5 \strokec5  \cf12 \strokec12 'done'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  hasTasks \cf8 \strokec8 =\cf5 \strokec5  dayTasks\cf8 \strokec8 .\cf5 \strokec5 length \cf8 \strokec8 >\cf5 \strokec5  \cf11 \strokec11 0\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  allDone \cf8 \strokec8 =\cf5 \strokec5  hasTasks \cf8 \strokec8 &&\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 doneTasks\cf8 \strokec8 .\cf5 \strokec5 length \cf8 \strokec8 ===\cf5 \strokec5  dayTasks\cf8 \strokec8 .\cf5 \strokec5 length\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\
-\cb3                 \cf13 \strokec13 let\cf5 \strokec5  btnClass \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 'p-1 cursor-pointer flex flex-col items-center justify-center rounded-lg transition-all min-h-[44px] hover:bg-slate-100 '\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 let\cf5 \strokec5  textClass \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 'text-slate-700 font-medium text-sm '\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cb1 \
-\cb3                 \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 isSelected\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                     btnClass \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 'p-1 cursor-pointer flex flex-col items-center justify-center rounded-lg transition-all min-h-[44px] bg-brand-500 shadow-md shadow-brand-500/30 '\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                     textClass \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 'text-white font-bold text-sm '\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \}\cf5 \strokec5  \cf13 \strokec13 else\cf5 \strokec5  \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 isToday\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                     btnClass \cf8 \strokec8 +=\cf5 \strokec5  \cf12 \strokec12 'bg-brand-50 ring-1 ring-inset ring-brand-200 '\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                     textClass \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 'text-brand-700 font-bold text-sm '\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3                 \cf13 \strokec13 let\cf5 \strokec5  dotHtml \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 hasTasks\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                     \cf13 \strokec13 const\cf5 \strokec5  dotColor \cf8 \strokec8 =\cf5 \strokec5  isSelected \cf8 \strokec8 ?\cf5 \strokec5  \cf12 \strokec12 'bg-white'\cf5 \strokec5  \cf8 \strokec8 :\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 allDone \cf8 \strokec8 ?\cf5 \strokec5  \cf12 \strokec12 'bg-brand-500'\cf5 \strokec5  \cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-slate-300'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                     dotHtml \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 `<div class="w-1.5 h-1.5 rounded-full mt-1 \cf8 \strokec8 $\{\cf5 \strokec5 dotColor\cf8 \strokec8 \}\cf12 \strokec12 "></div>`\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  cell \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 createElement\cf8 \strokec8 (\cf12 \strokec12 'div'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 cell\cf8 \strokec8 .\cf5 \strokec5 className \cf8 \strokec8 =\cf5 \strokec5  btnClass\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 cell\cf8 \strokec8 .\cf5 \strokec5 onclick \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 =>\cf5 \strokec5  selectDate\cf8 \strokec8 (\cf5 \strokec5 dateStr\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 cell\cf8 \strokec8 .\cf5 \strokec5 innerHTML \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 `<span class="\cf8 \strokec8 $\{\cf5 \strokec5 textClass\cf8 \strokec8 \}\cf12 \strokec12 ">\cf8 \strokec8 $\{\cf5 \strokec5 i\cf8 \strokec8 \}\cf12 \strokec12 </span>\cf8 \strokec8 $\{\cf5 \strokec5 dotHtml\cf8 \strokec8 \}\cf12 \strokec12 `\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 grid\cf8 \strokec8 .\cf5 \strokec5 appendChild\cf8 \strokec8 (\cf5 \strokec5 cell\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf10 \strokec10 // --- \uc0\u30475 \u26495 \u33287 \u20219 \u21209 \u21151 \u33021  ---\cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  updateUI\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf10 \strokec10 // \uc0\u26356 \u26032 \u21491 \u20596 \u26085 \u26399 \u27161 \u38988 \cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  dateObj \cf8 \strokec8 =\cf5 \strokec5  \cf13 \strokec13 new\cf5 \strokec5  \cf14 \strokec14 Date\cf8 \strokec8 (\cf5 \strokec5 selectedDateStr\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  weekday \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 [\cf12 \strokec12 '\uc0\u26085 '\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 '\uc0\u19968 '\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 '\uc0\u20108 '\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 '\uc0\u19977 '\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 '\uc0\u22235 '\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 '\uc0\u20116 '\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 '\uc0\u20845 '\cf8 \strokec8 ][\cf5 \strokec5 dateObj\cf8 \strokec8 .\cf5 \strokec5 getDay\cf8 \strokec8 ()];\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  titleDate \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 `\cf8 \strokec8 $\{\cf5 \strokec5 dateObj\cf8 \strokec8 .\cf5 \strokec5 getFullYear\cf8 \strokec8 ()\}\cf12 \strokec12 \uc0\u24180 \cf8 \strokec8 $\{\cf5 \strokec5 dateObj\cf8 \strokec8 .\cf5 \strokec5 getMonth\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 +\cf5 \strokec5  \cf11 \strokec11 1\cf8 \strokec8 \}\cf12 \strokec12 \uc0\u26376 \cf8 \strokec8 $\{\cf5 \strokec5 dateObj\cf8 \strokec8 .\cf5 \strokec5 getDate\cf8 \strokec8 ()\}\cf12 \strokec12 \uc0\u26085 `\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             \cf13 \strokec13 let\cf5 \strokec5  titlePrefix \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 selectedDateStr \cf8 \strokec8 ===\cf5 \strokec5  getLocalISODate\cf8 \strokec8 (\cf13 \strokec13 new\cf5 \strokec5  \cf14 \strokec14 Date\cf8 \strokec8 ()))\cf5 \strokec5  titlePrefix \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 '\uc0\u10024  \u20170 \u22825  - '\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'selected-date-title'\cf8 \strokec8 ).\cf5 \strokec5 innerHTML \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 `\cf8 \strokec8 $\{\cf5 \strokec5 titlePrefix\cf8 \strokec8 \}$\{\cf5 \strokec5 titleDate\cf8 \strokec8 \}\cf12 \strokec12  <span class="text-slate-400 text-lg font-normal ml-2">(\uc0\u26143 \u26399 \cf8 \strokec8 $\{\cf5 \strokec5 weekday\cf8 \strokec8 \}\cf12 \strokec12 )</span>`\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf10 \strokec10 // \uc0\u36942 \u28670 \u20986 \u36984 \u23450 \u26085 \u26399 \u30340 \u20219 \u21209 \cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  currentTasks \cf8 \strokec8 =\cf5 \strokec5  tasks\cf8 \strokec8 .\cf5 \strokec5 filter\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  t\cf8 \strokec8 .\cf5 \strokec5 date \cf8 \strokec8 ===\cf5 \strokec5  selectedDateStr\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  columns \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 todo\cf8 \strokec8 :\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'todo'\cf8 \strokec8 ),\cf5 \cb1 \strokec5 \
-\cb3                 inprogress\cf8 \strokec8 :\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'inprogress'\cf8 \strokec8 ),\cf5 \cb1 \strokec5 \
-\cb3                 done\cf8 \strokec8 :\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'done'\cf8 \strokec8 )\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \};\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf14 \strokec14 Object\cf8 \strokec8 .\cf5 \strokec5 values\cf8 \strokec8 (\cf5 \strokec5 columns\cf8 \strokec8 ).\cf5 \strokec5 forEach\cf8 \strokec8 (\cf5 \strokec5 col \cf8 \strokec8 =>\cf5 \strokec5  col\cf8 \strokec8 .\cf5 \strokec5 innerHTML \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 let\cf5 \strokec5  counts \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  todo\cf8 \strokec8 :\cf5 \strokec5  \cf11 \strokec11 0\cf8 \strokec8 ,\cf5 \strokec5  inprogress\cf8 \strokec8 :\cf5 \strokec5  \cf11 \strokec11 0\cf8 \strokec8 ,\cf5 \strokec5  done\cf8 \strokec8 :\cf5 \strokec5  \cf11 \strokec11 0\cf5 \strokec5  \cf8 \strokec8 \};\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf10 \strokec10 // \uc0\u25490 \u24207 \u20006 \u28210 \u26579 \cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  sortedTasks \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 [...\cf5 \strokec5 currentTasks\cf8 \strokec8 ].\cf5 \strokec5 sort\cf8 \strokec8 ((\cf5 \strokec5 a\cf8 \strokec8 ,\cf5 \strokec5  b\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 =>\cf5 \strokec5  b\cf8 \strokec8 .\cf5 \strokec5 timestamp \cf8 \strokec8 -\cf5 \strokec5  a\cf8 \strokec8 .\cf5 \strokec5 timestamp\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             sortedTasks\cf8 \strokec8 .\cf5 \strokec5 forEach\cf8 \strokec8 (\cf5 \strokec5 task \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 columns\cf8 \strokec8 [\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 status\cf8 \strokec8 ])\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                     counts\cf8 \strokec8 [\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 status\cf8 \strokec8 ]++;\cf5 \cb1 \strokec5 \
-\cb3                     columns\cf8 \strokec8 [\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 status\cf8 \strokec8 ].\cf5 \strokec5 appendChild\cf8 \strokec8 (\cf5 \strokec5 createTaskElement\cf8 \strokec8 (\cf5 \strokec5 task\cf8 \strokec8 ));\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf10 \strokec10 // \uc0\u26356 \u26032 \u35336 \u25976 \u22120 \cf5 \cb1 \strokec5 \
-\cb3             document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'count-todo'\cf8 \strokec8 ).\cf5 \strokec5 textContent \cf8 \strokec8 =\cf5 \strokec5  counts\cf8 \strokec8 .\cf5 \strokec5 todo\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'count-inprogress'\cf8 \strokec8 ).\cf5 \strokec5 textContent \cf8 \strokec8 =\cf5 \strokec5  counts\cf8 \strokec8 .\cf5 \strokec5 inprogress\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'count-done'\cf8 \strokec8 ).\cf5 \strokec5 textContent \cf8 \strokec8 =\cf5 \strokec5  counts\cf8 \strokec8 .\cf5 \strokec5 done\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf10 \strokec10 // \uc0\u26356 \u26032 \u36984 \u23450 \u26085 \u26399 \u30340 \u36914 \u24230 \u26781 \cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  totalTasks \cf8 \strokec8 =\cf5 \strokec5  currentTasks\cf8 \strokec8 .\cf5 \strokec5 length\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  doneTasks \cf8 \strokec8 =\cf5 \strokec5  counts\cf8 \strokec8 .\cf5 \strokec5 done\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  progressBar \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'progress-bar'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  progressText \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'progress-text'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  taskCountText \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'task-count-text'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             taskCountText\cf8 \strokec8 .\cf5 \strokec5 textContent \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 `\cf8 \strokec8 $\{\cf5 \strokec5 doneTasks\cf8 \strokec8 \}\cf12 \strokec12  / \cf8 \strokec8 $\{\cf5 \strokec5 totalTasks\cf8 \strokec8 \}\cf12 \strokec12  \uc0\u38917 `\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 totalTasks \cf8 \strokec8 ===\cf5 \strokec5  \cf11 \strokec11 0\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 progressBar\cf8 \strokec8 .\cf5 \strokec5 style\cf8 \strokec8 .\cf5 \strokec5 width \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 '0%'\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 progressText\cf8 \strokec8 .\cf5 \strokec5 textContent \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 '0%'\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \}\cf5 \strokec5  \cf13 \strokec13 else\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  percentage \cf8 \strokec8 =\cf5 \strokec5  \cf14 \strokec14 Math\cf8 \strokec8 .\cf5 \strokec5 round\cf8 \strokec8 ((\cf5 \strokec5 doneTasks \cf8 \strokec8 /\cf5 \strokec5  totalTasks\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 *\cf5 \strokec5  \cf11 \strokec11 100\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 progressBar\cf8 \strokec8 .\cf5 \strokec5 style\cf8 \strokec8 .\cf5 \strokec5 width \cf8 \strokec8 =\cf5 \strokec5  percentage \cf8 \strokec8 +\cf5 \strokec5  \cf12 \strokec12 '%'\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 progressText\cf8 \strokec8 .\cf5 \strokec5 textContent \cf8 \strokec8 =\cf5 \strokec5  percentage \cf8 \strokec8 +\cf5 \strokec5  \cf12 \strokec12 '%'\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3             lucide\cf8 \strokec8 .\cf5 \strokec5 createIcons\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  addTask\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  input \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'task-input'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  descInput \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'task-desc-input'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  category \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'category-input'\cf8 \strokec8 ).\cf5 \strokec5 value\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  text \cf8 \strokec8 =\cf5 \strokec5  input\cf8 \strokec8 .\cf5 \strokec5 value\cf8 \strokec8 .\cf5 \strokec5 trim\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  desc \cf8 \strokec8 =\cf5 \strokec5  descInput \cf8 \strokec8 ?\cf5 \strokec5  descInput\cf8 \strokec8 .\cf5 \strokec5 value\cf8 \strokec8 .\cf5 \strokec5 trim\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 text \cf8 \strokec8 ===\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  showToast\cf8 \strokec8 (\cf12 \strokec12 '\uc0\u35531 \u36664 \u20837 \u20219 \u21209 \u21517 \u31281 \u65281 '\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 false\cf8 \strokec8 );\cf5 \strokec5  \cf13 \strokec13 return\cf8 \strokec8 ;\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3             tasks\cf8 \strokec8 .\cf5 \strokec5 push\cf8 \strokec8 (\{\cf5 \cb1 \strokec5 \
-\cb3                 id\cf8 \strokec8 :\cf5 \strokec5  \cf14 \strokec14 Math\cf8 \strokec8 .\cf5 \strokec5 random\cf8 \strokec8 ().\cf5 \strokec5 toString\cf8 \strokec8 (\cf11 \strokec11 36\cf8 \strokec8 ).\cf5 \strokec5 substr\cf8 \strokec8 (\cf11 \strokec11 2\cf8 \strokec8 ,\cf5 \strokec5  \cf11 \strokec11 9\cf8 \strokec8 ),\cf5 \cb1 \strokec5 \
-\cb3                 text\cf8 \strokec8 :\cf5 \strokec5  text\cf8 \strokec8 ,\cf5 \cb1 \strokec5 \
-\cb3                 description\cf8 \strokec8 :\cf5 \strokec5  desc\cf8 \strokec8 ,\cf5 \cb1 \strokec5 \
-\cb3                 category\cf8 \strokec8 :\cf5 \strokec5  category\cf8 \strokec8 ,\cf5 \cb1 \strokec5 \
-\cb3                 status\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'todo'\cf8 \strokec8 ,\cf5 \cb1 \strokec5 \
-\cb3                 date\cf8 \strokec8 :\cf5 \strokec5  selectedDateStr\cf8 \strokec8 ,\cf5 \strokec5  \cf10 \strokec10 // \uc0\u32129 \u23450 \u21040 \u30070 \u21069 \u36984 \u25799 \u30340 \u26085 \u26399 \cf5 \cb1 \strokec5 \
-\cb3                 timestamp\cf8 \strokec8 :\cf5 \strokec5  \cf14 \strokec14 Date\cf8 \strokec8 .\cf5 \strokec5 now\cf8 \strokec8 ()\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\
-\cb3             input\cf8 \strokec8 .\cf5 \strokec5 value \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 descInput\cf8 \strokec8 )\cf5 \strokec5  descInput\cf8 \strokec8 .\cf5 \strokec5 value \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             saveData\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             showToast\cf8 \strokec8 (\cf12 \strokec12 '\uc0\u24050 \u26032 \u22686 \u21040  '\cf5 \strokec5  \cf8 \strokec8 +\cf5 \strokec5  selectedDateStr\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  deleteTask\cf8 \strokec8 (\cf5 \strokec5 id\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             tasks \cf8 \strokec8 =\cf5 \strokec5  tasks\cf8 \strokec8 .\cf5 \strokec5 filter\cf8 \strokec8 (\cf5 \strokec5 task \cf8 \strokec8 =>\cf5 \strokec5  task\cf8 \strokec8 .\cf5 \strokec5 id \cf8 \strokec8 !==\cf5 \strokec5  id\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             saveData\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  updateTaskStatus\cf8 \strokec8 (\cf5 \strokec5 id\cf8 \strokec8 ,\cf5 \strokec5  newStatus\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  taskIndex \cf8 \strokec8 =\cf5 \strokec5  tasks\cf8 \strokec8 .\cf5 \strokec5 findIndex\cf8 \strokec8 (\cf5 \strokec5 task \cf8 \strokec8 =>\cf5 \strokec5  task\cf8 \strokec8 .\cf5 \strokec5 id \cf8 \strokec8 ===\cf5 \strokec5  id\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 taskIndex \cf8 \strokec8 !==\cf5 \strokec5  \cf8 \strokec8 -\cf11 \strokec11 1\cf5 \strokec5  \cf8 \strokec8 &&\cf5 \strokec5  tasks\cf8 \strokec8 [\cf5 \strokec5 taskIndex\cf8 \strokec8 ].\cf5 \strokec5 status \cf8 \strokec8 !==\cf5 \strokec5  newStatus\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 tasks\cf8 \strokec8 [\cf5 \strokec5 taskIndex\cf8 \strokec8 ].\cf5 \strokec5 status \cf8 \strokec8 =\cf5 \strokec5  newStatus\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 saveData\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  createTaskElement\cf8 \strokec8 (\cf5 \strokec5 task\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  card \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 createElement\cf8 \strokec8 (\cf12 \strokec12 'div'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             card\cf8 \strokec8 .\cf5 \strokec5 className \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 'task-card bg-white p-3 rounded-lg shadow-sm border border-slate-200 mb-2.5 flex flex-col gap-2 group relative'\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             card\cf8 \strokec8 .\cf5 \strokec5 draggable \cf8 \strokec8 =\cf5 \strokec5  \cf13 \strokec13 true\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             card\cf8 \strokec8 .\cf5 \strokec5 dataset\cf8 \strokec8 .\cf5 \strokec5 id \cf8 \strokec8 =\cf5 \strokec5  task\cf8 \strokec8 .\cf5 \strokec5 id\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  catInfo \cf8 \strokec8 =\cf5 \strokec5  categories\cf8 \strokec8 .\cf5 \strokec5 find\cf8 \strokec8 (\cf5 \strokec5 c \cf8 \strokec8 =>\cf5 \strokec5  c\cf8 \strokec8 .\cf5 \strokec5 name \cf8 \strokec8 ===\cf5 \strokec5  task\cf8 \strokec8 .\cf5 \strokec5 category\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  colorClass \cf8 \strokec8 =\cf5 \strokec5  catInfo \cf8 \strokec8 ?\cf5 \strokec5  catInfo\cf8 \strokec8 .\cf5 \strokec5 colorClass \cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'bg-slate-100 text-slate-700 border-slate-200'\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  statusButtons \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 `\cf5 \cb1 \strokec5 \
-\pard\pardeftab720\partightenfactor0
-\cf12 \cb3 \strokec12                 <div class="flex gap-1 mt-1 sm:hidden border-t pt-2 border-slate-100">\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                     \cf8 \strokec8 $\{\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 status \cf8 \strokec8 !==\cf5 \strokec5  \cf12 \strokec12 'todo'\cf5 \strokec5  \cf8 \strokec8 ?\cf5 \strokec5  \cf12 \strokec12 `<button onclick="updateTaskStatus('\cf8 \strokec8 $\{\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 id\cf8 \strokec8 \}\cf12 \strokec12 ', 'todo')" class="flex-1 text-xs py-1 rounded bg-slate-100 text-slate-600">\uc0\u24453 \u36774 </button>`\cf5 \strokec5  \cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                     \cf8 \strokec8 $\{\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 status \cf8 \strokec8 !==\cf5 \strokec5  \cf12 \strokec12 'inprogress'\cf5 \strokec5  \cf8 \strokec8 ?\cf5 \strokec5  \cf12 \strokec12 `<button onclick="updateTaskStatus('\cf8 \strokec8 $\{\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 id\cf8 \strokec8 \}\cf12 \strokec12 ', 'inprogress')" class="flex-1 text-xs py-1 rounded bg-blue-50 text-blue-600">\uc0\u36914 \u34892 </button>`\cf5 \strokec5  \cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                     \cf8 \strokec8 $\{\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 status \cf8 \strokec8 !==\cf5 \strokec5  \cf12 \strokec12 'done'\cf5 \strokec5  \cf8 \strokec8 ?\cf5 \strokec5  \cf12 \strokec12 `<button onclick="updateTaskStatus('\cf8 \strokec8 $\{\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 id\cf8 \strokec8 \}\cf12 \strokec12 ', 'done')" class="flex-1 text-xs py-1 rounded bg-brand-50 text-brand-600">\uc0\u23436 \u25104 </button>`\cf5 \strokec5  \cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                 </div>\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12             `\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\pard\pardeftab720\partightenfactor0
-\cf5 \cb3             \cb1 \
-\cb3             \cf10 \strokec10 // \uc0\u34389 \u29702 \u20839 \u23481 \u25563 \u34892 \u33287 \u38450 \u31684  XSS\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  descHtml \cf8 \strokec8 =\cf5 \strokec5  task\cf8 \strokec8 .\cf5 \strokec5 description \cf8 \strokec8 ?\cf5 \strokec5  \cf12 \strokec12 `<p class="text-xs text-slate-500 mt-0.5 whitespace-pre-wrap line-clamp-3 bg-slate-50 p-2 rounded">\cf8 \strokec8 $\{\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 description\cf8 \strokec8 .\cf5 \strokec5 replace\cf8 \strokec8 (\cf15 \strokec15 /</\cf13 \strokec13 g\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 "&lt;"\cf8 \strokec8 ).\cf5 \strokec5 replace\cf8 \strokec8 (\cf15 \strokec15 />/\cf13 \strokec13 g\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 "&gt;"\cf8 \strokec8 )\}\cf12 \strokec12 </p>`\cf5 \strokec5  \cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\
-\cb3             card\cf8 \strokec8 .\cf5 \strokec5 innerHTML \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 `\cf5 \cb1 \strokec5 \
-\pard\pardeftab720\partightenfactor0
-\cf12 \cb3 \strokec12                 <div class="flex justify-between items-start gap-2">\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                     <span class="text-[10px] font-semibold px-2 py-0.5 rounded border \cf8 \strokec8 $\{\cf5 \strokec5 colorClass\cf8 \strokec8 \}\cf12 \strokec12 ">\cf8 \strokec8 $\{\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 category\cf8 \strokec8 \}\cf12 \strokec12 </span>\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                     <div class="flex gap-1 opacity-0 group-hover:opacity-100 sm:opacity-100 transition-opacity">\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                         <button onclick="openEditModal('\cf8 \strokec8 $\{\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 id\cf8 \strokec8 \}\cf12 \strokec12 ')" class="text-slate-400 hover:text-blue-500 p-0.5" title="\uc0\u32232 \u36655 \u20219 \u21209 ">\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                             <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                         </button>\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                         <button onclick="deleteTask('\cf8 \strokec8 $\{\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 id\cf8 \strokec8 \}\cf12 \strokec12 ')" class="text-slate-400 hover:text-red-500 p-0.5" title="\uc0\u21034 \u38500 \u20219 \u21209 ">\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                         </button>\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                     </div>\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                 </div>\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                 <p class="text-sm text-slate-700 font-medium leading-snug break-words \cf8 \strokec8 $\{\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 status \cf8 \strokec8 ===\cf5 \strokec5  \cf12 \strokec12 'done'\cf5 \strokec5  \cf8 \strokec8 ?\cf5 \strokec5  \cf12 \strokec12 'line-through text-slate-400'\cf5 \strokec5  \cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 \}\cf12 \strokec12 ">\cf8 \strokec8 $\{\cf5 \strokec5 task\cf8 \strokec8 .\cf5 \strokec5 text\cf8 \strokec8 \}\cf12 \strokec12 </p>\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                 \cf8 \strokec8 $\{\cf5 \strokec5 descHtml\cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                 \cf8 \strokec8 $\{\cf5 \strokec5 statusButtons\cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12             `\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\
-\pard\pardeftab720\partightenfactor0
-\cf5 \cb3             card\cf8 \strokec8 .\cf5 \strokec5 addEventListener\cf8 \strokec8 (\cf12 \strokec12 'dragstart'\cf8 \strokec8 ,\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 e\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 e\cf8 \strokec8 .\cf5 \strokec5 dataTransfer\cf8 \strokec8 .\cf5 \strokec5 setData\cf8 \strokec8 (\cf12 \strokec12 'text/plain'\cf8 \strokec8 ,\cf5 \strokec5  task\cf8 \strokec8 .\cf5 \strokec5 id\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 e\cf8 \strokec8 .\cf5 \strokec5 dataTransfer\cf8 \strokec8 .\cf5 \strokec5 effectAllowed \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 'move'\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 setTimeout\cf8 \strokec8 (()\cf5 \strokec5  \cf8 \strokec8 =>\cf5 \strokec5  card\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 add\cf8 \strokec8 (\cf12 \strokec12 'dragging'\cf8 \strokec8 ),\cf5 \strokec5  \cf11 \strokec11 0\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\
-\cb3             card\cf8 \strokec8 .\cf5 \strokec5 addEventListener\cf8 \strokec8 (\cf12 \strokec12 'dragend'\cf8 \strokec8 ,\cf5 \strokec5  \cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 card\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 remove\cf8 \strokec8 (\cf12 \strokec12 'dragging'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 document\cf8 \strokec8 .\cf5 \strokec5 querySelectorAll\cf8 \strokec8 (\cf12 \strokec12 '.column-drop-zone'\cf8 \strokec8 ).\cf5 \strokec5 forEach\cf8 \strokec8 (\cf5 \strokec5 zone \cf8 \strokec8 =>\cf5 \strokec5  zone\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 remove\cf8 \strokec8 (\cf12 \strokec12 'drag-over'\cf8 \strokec8 ));\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf13 \strokec13 return\cf5 \strokec5  card\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  setupDragAndDrop\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             document\cf8 \strokec8 .\cf5 \strokec5 querySelectorAll\cf8 \strokec8 (\cf12 \strokec12 '.column-drop-zone'\cf8 \strokec8 ).\cf5 \strokec5 forEach\cf8 \strokec8 (\cf5 \strokec5 zone \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 zone\cf8 \strokec8 .\cf5 \strokec5 addEventListener\cf8 \strokec8 (\cf12 \strokec12 'dragover'\cf8 \strokec8 ,\cf5 \strokec5  e \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                     e\cf8 \strokec8 .\cf5 \strokec5 preventDefault\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3                     zone\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 add\cf8 \strokec8 (\cf12 \strokec12 'drag-over'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\cb3                 zone\cf8 \strokec8 .\cf5 \strokec5 addEventListener\cf8 \strokec8 (\cf12 \strokec12 'dragleave'\cf8 \strokec8 ,\cf5 \strokec5  e \cf8 \strokec8 =>\cf5 \strokec5  zone\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 remove\cf8 \strokec8 (\cf12 \strokec12 'drag-over'\cf8 \strokec8 ));\cf5 \cb1 \strokec5 \
-\cb3                 zone\cf8 \strokec8 .\cf5 \strokec5 addEventListener\cf8 \strokec8 (\cf12 \strokec12 'drop'\cf8 \strokec8 ,\cf5 \strokec5  e \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                     e\cf8 \strokec8 .\cf5 \strokec5 preventDefault\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3                     zone\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 remove\cf8 \strokec8 (\cf12 \strokec12 'drag-over'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                     \cf13 \strokec13 const\cf5 \strokec5  taskId \cf8 \strokec8 =\cf5 \strokec5  e\cf8 \strokec8 .\cf5 \strokec5 dataTransfer\cf8 \strokec8 .\cf5 \strokec5 getData\cf8 \strokec8 (\cf12 \strokec12 'text/plain'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                     \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 taskId \cf8 \strokec8 &&\cf5 \strokec5  zone\cf8 \strokec8 .\cf5 \strokec5 dataset\cf8 \strokec8 .\cf5 \strokec5 status\cf8 \strokec8 )\cf5 \strokec5  updateTaskStatus\cf8 \strokec8 (\cf5 \strokec5 taskId\cf8 \strokec8 ,\cf5 \strokec5  zone\cf8 \strokec8 .\cf5 \strokec5 dataset\cf8 \strokec8 .\cf5 \strokec5 status\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf10 \strokec10 // --- \uc0\u20998 \u39006 \u31649 \u29702  (\u33287 \u33290 \u29256 \u30456 \u21516 \u37007 \u36655 ) ---\cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  loadCategories\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  saved \cf8 \strokec8 =\cf5 \strokec5  localStorage\cf8 \strokec8 .\cf5 \strokec5 getItem\cf8 \strokec8 (\cf14 \strokec14 STORAGE_KEY_CATS\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 saved\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 try\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  categories \cf8 \strokec8 =\cf5 \strokec5  \cf14 \strokec14 JSON\cf8 \strokec8 .\cf5 \strokec5 parse\cf8 \strokec8 (\cf5 \strokec5 saved\cf8 \strokec8 );\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \strokec5  \cf13 \strokec13 catch\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 e\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  initDefaultCategories\cf8 \strokec8 ();\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \}\cf5 \strokec5  \cf13 \strokec13 else\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  initDefaultCategories\cf8 \strokec8 ();\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3             renderCategorySelect\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  initDefaultCategories\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             categories \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 [\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \{\cf5 \strokec5  id\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'cat_1'\cf8 \strokec8 ,\cf5 \strokec5  name\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 '\uc0\u35222 \u35258 \u35373 \u35336 '\cf8 \strokec8 ,\cf5 \strokec5  colorClass\cf8 \strokec8 :\cf5 \strokec5  colorThemes\cf8 \strokec8 .\cf5 \strokec5 find\cf8 \strokec8 (\cf5 \strokec5 c \cf8 \strokec8 =>\cf5 \strokec5  c\cf8 \strokec8 .\cf5 \strokec5 value \cf8 \strokec8 ===\cf5 \strokec5  \cf12 \strokec12 'purple'\cf8 \strokec8 ).\cf13 \strokec13 class\cf5 \strokec5  \cf8 \strokec8 \},\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \{\cf5 \strokec5  id\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'cat_2'\cf8 \strokec8 ,\cf5 \strokec5  name\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 '\uc0\u32178 \u38913 \u38283 \u30332 '\cf8 \strokec8 ,\cf5 \strokec5  colorClass\cf8 \strokec8 :\cf5 \strokec5  colorThemes\cf8 \strokec8 .\cf5 \strokec5 find\cf8 \strokec8 (\cf5 \strokec5 c \cf8 \strokec8 =>\cf5 \strokec5  c\cf8 \strokec8 .\cf5 \strokec5 value \cf8 \strokec8 ===\cf5 \strokec5  \cf12 \strokec12 'blue'\cf8 \strokec8 ).\cf13 \strokec13 class\cf5 \strokec5  \cf8 \strokec8 \},\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \{\cf5 \strokec5  id\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'cat_3'\cf8 \strokec8 ,\cf5 \strokec5  name\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 '\uc0\u23560 \u26696 \u28317 \u36890 '\cf8 \strokec8 ,\cf5 \strokec5  colorClass\cf8 \strokec8 :\cf5 \strokec5  colorThemes\cf8 \strokec8 .\cf5 \strokec5 find\cf8 \strokec8 (\cf5 \strokec5 c \cf8 \strokec8 =>\cf5 \strokec5  c\cf8 \strokec8 .\cf5 \strokec5 value \cf8 \strokec8 ===\cf5 \strokec5  \cf12 \strokec12 'amber'\cf8 \strokec8 ).\cf13 \strokec13 class\cf5 \strokec5  \cf8 \strokec8 \},\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \{\cf5 \strokec5  id\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'cat_4'\cf8 \strokec8 ,\cf5 \strokec5  name\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 '\uc0\u26085 \u24120 \u34892 \u25919 '\cf8 \strokec8 ,\cf5 \strokec5  colorClass\cf8 \strokec8 :\cf5 \strokec5  colorThemes\cf8 \strokec8 .\cf5 \strokec5 find\cf8 \strokec8 (\cf5 \strokec5 c \cf8 \strokec8 =>\cf5 \strokec5  c\cf8 \strokec8 .\cf5 \strokec5 value \cf8 \strokec8 ===\cf5 \strokec5  \cf12 \strokec12 'emerald'\cf8 \strokec8 ).\cf13 \strokec13 class\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 ];\cf5 \cb1 \strokec5 \
-\cb3             localStorage\cf8 \strokec8 .\cf5 \strokec5 setItem\cf8 \strokec8 (\cf14 \strokec14 STORAGE_KEY_CATS\cf8 \strokec8 ,\cf5 \strokec5  \cf14 \strokec14 JSON\cf8 \strokec8 .\cf5 \strokec5 stringify\cf8 \strokec8 (\cf5 \strokec5 categories\cf8 \strokec8 ));\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  renderCategorySelect\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  select \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'category-input'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             select\cf8 \strokec8 .\cf5 \strokec5 innerHTML \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             categories\cf8 \strokec8 .\cf5 \strokec5 forEach\cf8 \strokec8 (\cf5 \strokec5 cat \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  opt \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 createElement\cf8 \strokec8 (\cf12 \strokec12 'option'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 opt\cf8 \strokec8 .\cf5 \strokec5 value \cf8 \strokec8 =\cf5 \strokec5  cat\cf8 \strokec8 .\cf5 \strokec5 name\cf8 \strokec8 ;\cf5 \strokec5  opt\cf8 \strokec8 .\cf5 \strokec5 textContent \cf8 \strokec8 =\cf5 \strokec5  cat\cf8 \strokec8 .\cf5 \strokec5 name\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 select\cf8 \strokec8 .\cf5 \strokec5 appendChild\cf8 \strokec8 (\cf5 \strokec5 opt\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  openCategoryModal\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             renderCategoryList\cf8 \strokec8 ();\cf5 \strokec5  renderColorPicker\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  modal \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'category-modal'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  content \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'category-modal-content'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             modal\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 remove\cf8 \strokec8 (\cf12 \strokec12 'hidden'\cf8 \strokec8 );\cf5 \strokec5  \cf13 \strokec13 void\cf5 \strokec5  modal\cf8 \strokec8 .\cf5 \strokec5 offsetWidth\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             modal\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 remove\cf8 \strokec8 (\cf12 \strokec12 'opacity-0'\cf8 \strokec8 );\cf5 \strokec5  content\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 remove\cf8 \strokec8 (\cf12 \strokec12 'scale-95'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             lucide\cf8 \strokec8 .\cf5 \strokec5 createIcons\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  closeCategoryModal\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  modal \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'category-modal'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  content \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'category-modal-content'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             modal\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 add\cf8 \strokec8 (\cf12 \strokec12 'opacity-0'\cf8 \strokec8 );\cf5 \strokec5  content\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 add\cf8 \strokec8 (\cf12 \strokec12 'scale-95'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             setTimeout\cf8 \strokec8 (()\cf5 \strokec5  \cf8 \strokec8 =>\cf5 \strokec5  modal\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 add\cf8 \strokec8 (\cf12 \strokec12 'hidden'\cf8 \strokec8 ),\cf5 \strokec5  \cf11 \strokec11 300\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  renderCategoryList\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  list \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'category-list'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             list\cf8 \strokec8 .\cf5 \strokec5 innerHTML \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             categories\cf8 \strokec8 .\cf5 \strokec5 forEach\cf8 \strokec8 (\cf5 \strokec5 cat \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 list\cf8 \strokec8 .\cf5 \strokec5 innerHTML \cf8 \strokec8 +=\cf5 \strokec5  \cf12 \strokec12 `\cf5 \cb1 \strokec5 \
-\pard\pardeftab720\partightenfactor0
-\cf12 \cb3 \strokec12                     <li class="flex justify-between items-center p-3 rounded-lg border border-slate-200 bg-white shadow-sm">\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                         <span class="text-xs font-semibold px-2.5 py-1.5 rounded-md border \cf8 \strokec8 $\{\cf5 \strokec5 cat\cf8 \strokec8 .\cf5 \strokec5 colorClass\cf8 \strokec8 \}\cf12 \strokec12 ">\cf8 \strokec8 $\{\cf5 \strokec5 cat\cf8 \strokec8 .\cf5 \strokec5 name\cf8 \strokec8 \}\cf12 \strokec12 </span>\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                         <button onclick="deleteCategory('\cf8 \strokec8 $\{\cf5 \strokec5 cat\cf8 \strokec8 .\cf5 \strokec5 id\cf8 \strokec8 \}\cf12 \strokec12 ')" class="text-slate-400 hover:text-red-500 p-1.5 transition-colors rounded-md hover:bg-red-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button>\cf5 \cb1 \strokec5 \
-\cf12 \cb3 \strokec12                     </li>`\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\pard\pardeftab720\partightenfactor0
-\cf5 \cb3             \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\cb3             lucide\cf8 \strokec8 .\cf5 \strokec5 createIcons\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  renderColorPicker\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  picker \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'color-picker'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             picker\cf8 \strokec8 .\cf5 \strokec5 innerHTML \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             colorThemes\cf8 \strokec8 .\cf5 \strokec5 forEach\cf8 \strokec8 (\cf5 \strokec5 theme \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  isSelected \cf8 \strokec8 =\cf5 \strokec5  selectedNewCategoryColor\cf8 \strokec8 .\cf5 \strokec5 value \cf8 \strokec8 ===\cf5 \strokec5  theme\cf8 \strokec8 .\cf5 \strokec5 value\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  ringClass \cf8 \strokec8 =\cf5 \strokec5  isSelected \cf8 \strokec8 ?\cf5 \strokec5  \cf12 \strokec12 'ring-2 ring-offset-2'\cf5 \strokec5  \cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  btn \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 createElement\cf8 \strokec8 (\cf12 \strokec12 'button'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 btn\cf8 \strokec8 .\cf5 \strokec5 className \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 `w-6 h-6 rounded-full cursor-pointer transition-all hover:scale-110 \cf8 \strokec8 $\{\cf5 \strokec5 theme\cf8 \strokec8 .\cf5 \strokec5 dotClass\cf8 \strokec8 .\cf5 \strokec5 split\cf8 \strokec8 (\cf12 \strokec12 ' '\cf8 \strokec8 )[\cf11 \strokec11 0\cf8 \strokec8 ]\}\cf12 \strokec12  \cf8 \strokec8 $\{\cf5 \strokec5 isSelected \cf8 \strokec8 ?\cf5 \strokec5  theme\cf8 \strokec8 .\cf5 \strokec5 dotClass\cf8 \strokec8 .\cf5 \strokec5 split\cf8 \strokec8 (\cf12 \strokec12 ' '\cf8 \strokec8 )[\cf11 \strokec11 1\cf8 \strokec8 ]\cf5 \strokec5  \cf8 \strokec8 +\cf5 \strokec5  \cf12 \strokec12 ' '\cf5 \strokec5  \cf8 \strokec8 +\cf5 \strokec5  ringClass \cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 \}\cf12 \strokec12 `\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 btn\cf8 \strokec8 .\cf5 \strokec5 onclick \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  selectedNewCategoryColor \cf8 \strokec8 =\cf5 \strokec5  theme\cf8 \strokec8 ;\cf5 \strokec5  renderColorPicker\cf8 \strokec8 ();\cf5 \strokec5  \cf8 \strokec8 \};\cf5 \cb1 \strokec5 \
-\cb3                 picker\cf8 \strokec8 .\cf5 \strokec5 appendChild\cf8 \strokec8 (\cf5 \strokec5 btn\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  addNewCategory\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  name \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'new-category-name'\cf8 \strokec8 ).\cf5 \strokec5 value\cf8 \strokec8 .\cf5 \strokec5 trim\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (!\cf5 \strokec5 name\cf8 \strokec8 )\cf5 \strokec5  \cf13 \strokec13 return\cf5 \strokec5  showToast\cf8 \strokec8 (\cf12 \strokec12 '\uc0\u35531 \u36664 \u20837 \u20998 \u39006 \u21517 \u31281 \u65281 '\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 false\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 categories\cf8 \strokec8 .\cf5 \strokec5 some\cf8 \strokec8 (\cf5 \strokec5 c \cf8 \strokec8 =>\cf5 \strokec5  c\cf8 \strokec8 .\cf5 \strokec5 name \cf8 \strokec8 ===\cf5 \strokec5  name\cf8 \strokec8 ))\cf5 \strokec5  \cf13 \strokec13 return\cf5 \strokec5  showToast\cf8 \strokec8 (\cf12 \strokec12 '\uc0\u27492 \u20998 \u39006 \u21517 \u31281 \u24050 \u23384 \u22312 \u65281 '\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 false\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             categories\cf8 \strokec8 .\cf5 \strokec5 push\cf8 \strokec8 (\{\cf5 \strokec5  id\cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'cat_'\cf5 \strokec5  \cf8 \strokec8 +\cf5 \strokec5  \cf14 \strokec14 Math\cf8 \strokec8 .\cf5 \strokec5 random\cf8 \strokec8 ().\cf5 \strokec5 toString\cf8 \strokec8 (\cf11 \strokec11 36\cf8 \strokec8 ).\cf5 \strokec5 substr\cf8 \strokec8 (\cf11 \strokec11 2\cf8 \strokec8 ,\cf5 \strokec5  \cf11 \strokec11 9\cf8 \strokec8 ),\cf5 \strokec5  name\cf8 \strokec8 :\cf5 \strokec5  name\cf8 \strokec8 ,\cf5 \strokec5  colorClass\cf8 \strokec8 :\cf5 \strokec5  selectedNewCategoryColor\cf8 \strokec8 .\cf13 \strokec13 class\cf5 \strokec5  \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\cb3             localStorage\cf8 \strokec8 .\cf5 \strokec5 setItem\cf8 \strokec8 (\cf14 \strokec14 STORAGE_KEY_CATS\cf8 \strokec8 ,\cf5 \strokec5  \cf14 \strokec14 JSON\cf8 \strokec8 .\cf5 \strokec5 stringify\cf8 \strokec8 (\cf5 \strokec5 categories\cf8 \strokec8 ));\cf5 \cb1 \strokec5 \
-\cb3             renderCategorySelect\cf8 \strokec8 ();\cf5 \strokec5  renderCategoryList\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'new-category-name'\cf8 \strokec8 ).\cf5 \strokec5 value \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             showToast\cf8 \strokec8 (\cf12 \strokec12 '\uc0\u20998 \u39006 \u26032 \u22686 \u25104 \u21151 \u65281 '\cf8 \strokec8 );\cf5 \strokec5  updateUI\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  deleteCategory\cf8 \strokec8 (\cf5 \strokec5 id\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 categories\cf8 \strokec8 .\cf5 \strokec5 length \cf8 \strokec8 <=\cf5 \strokec5  \cf11 \strokec11 1\cf8 \strokec8 )\cf5 \strokec5  \cf13 \strokec13 return\cf5 \strokec5  showToast\cf8 \strokec8 (\cf12 \strokec12 '\uc0\u35531 \u33267 \u23569 \u20445 \u30041 \u19968 \u20491 \u20998 \u39006 \u65281 '\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 false\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             categories \cf8 \strokec8 =\cf5 \strokec5  categories\cf8 \strokec8 .\cf5 \strokec5 filter\cf8 \strokec8 (\cf5 \strokec5 c \cf8 \strokec8 =>\cf5 \strokec5  c\cf8 \strokec8 .\cf5 \strokec5 id \cf8 \strokec8 !==\cf5 \strokec5  id\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             localStorage\cf8 \strokec8 .\cf5 \strokec5 setItem\cf8 \strokec8 (\cf14 \strokec14 STORAGE_KEY_CATS\cf8 \strokec8 ,\cf5 \strokec5  \cf14 \strokec14 JSON\cf8 \strokec8 .\cf5 \strokec5 stringify\cf8 \strokec8 (\cf5 \strokec5 categories\cf8 \strokec8 ));\cf5 \cb1 \strokec5 \
-\cb3             renderCategorySelect\cf8 \strokec8 ();\cf5 \strokec5  renderCategoryList\cf8 \strokec8 ();\cf5 \strokec5  updateUI\cf8 \strokec8 ();\cf5 \strokec5  showToast\cf8 \strokec8 (\cf12 \strokec12 '\uc0\u20998 \u39006 \u24050 \u21034 \u38500 '\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf10 \strokec10 // --- \uc0\u32232 \u36655 \u20219 \u21209 \u21151 \u33021  ---\cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 let\cf5 \strokec5  currentEditTaskId \cf8 \strokec8 =\cf5 \strokec5  \cf13 \strokec13 null\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  openEditModal\cf8 \strokec8 (\cf5 \strokec5 taskId\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  task \cf8 \strokec8 =\cf5 \strokec5  tasks\cf8 \strokec8 .\cf5 \strokec5 find\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  t\cf8 \strokec8 .\cf5 \strokec5 id \cf8 \strokec8 ===\cf5 \strokec5  taskId\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (!\cf5 \strokec5 task\cf8 \strokec8 )\cf5 \strokec5  \cf13 \strokec13 return\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             currentEditTaskId \cf8 \strokec8 =\cf5 \strokec5  taskId\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'edit-task-title'\cf8 \strokec8 ).\cf5 \strokec5 value \cf8 \strokec8 =\cf5 \strokec5  task\cf8 \strokec8 .\cf5 \strokec5 text\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'edit-task-desc'\cf8 \strokec8 ).\cf5 \strokec5 value \cf8 \strokec8 =\cf5 \strokec5  task\cf8 \strokec8 .\cf5 \strokec5 description \cf8 \strokec8 ||\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             \cf10 \strokec10 // \uc0\u28310 \u20633 \u20998 \u39006 \u36984 \u21934 \cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  select \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'edit-task-category'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             select\cf8 \strokec8 .\cf5 \strokec5 innerHTML \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             categories\cf8 \strokec8 .\cf5 \strokec5 forEach\cf8 \strokec8 (\cf5 \strokec5 cat \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 const\cf5 \strokec5  opt \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 createElement\cf8 \strokec8 (\cf12 \strokec12 'option'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 opt\cf8 \strokec8 .\cf5 \strokec5 value \cf8 \strokec8 =\cf5 \strokec5  cat\cf8 \strokec8 .\cf5 \strokec5 name\cf8 \strokec8 ;\cf5 \strokec5  opt\cf8 \strokec8 .\cf5 \strokec5 textContent \cf8 \strokec8 =\cf5 \strokec5  cat\cf8 \strokec8 .\cf5 \strokec5 name\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 select\cf8 \strokec8 .\cf5 \strokec5 appendChild\cf8 \strokec8 (\cf5 \strokec5 opt\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \});\cf5 \cb1 \strokec5 \
-\cb3             select\cf8 \strokec8 .\cf5 \strokec5 value \cf8 \strokec8 =\cf5 \strokec5  task\cf8 \strokec8 .\cf5 \strokec5 category\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  modal \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'edit-modal'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  content \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'edit-modal-content'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             modal\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 remove\cf8 \strokec8 (\cf12 \strokec12 'hidden'\cf8 \strokec8 );\cf5 \strokec5  \cf13 \strokec13 void\cf5 \strokec5  modal\cf8 \strokec8 .\cf5 \strokec5 offsetWidth\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             modal\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 remove\cf8 \strokec8 (\cf12 \strokec12 'opacity-0'\cf8 \strokec8 );\cf5 \strokec5  content\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 remove\cf8 \strokec8 (\cf12 \strokec12 'scale-95'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             lucide\cf8 \strokec8 .\cf5 \strokec5 createIcons\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  closeEditModal\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  modal \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'edit-modal'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  content \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'edit-modal-content'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             modal\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 add\cf8 \strokec8 (\cf12 \strokec12 'opacity-0'\cf8 \strokec8 );\cf5 \strokec5  content\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 add\cf8 \strokec8 (\cf12 \strokec12 'scale-95'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             setTimeout\cf8 \strokec8 (()\cf5 \strokec5  \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 modal\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 add\cf8 \strokec8 (\cf12 \strokec12 'hidden'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3                 currentEditTaskId \cf8 \strokec8 =\cf5 \strokec5  \cf13 \strokec13 null\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \},\cf5 \strokec5  \cf11 \strokec11 300\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  saveEditedTask\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (!\cf5 \strokec5 currentEditTaskId\cf8 \strokec8 )\cf5 \strokec5  \cf13 \strokec13 return\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  title \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'edit-task-title'\cf8 \strokec8 ).\cf5 \strokec5 value\cf8 \strokec8 .\cf5 \strokec5 trim\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  desc \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'edit-task-desc'\cf8 \strokec8 ).\cf5 \strokec5 value\cf8 \strokec8 .\cf5 \strokec5 trim\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  category \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'edit-task-category'\cf8 \strokec8 ).\cf5 \strokec5 value\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 title \cf8 \strokec8 ===\cf5 \strokec5  \cf12 \strokec12 ''\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  showToast\cf8 \strokec8 (\cf12 \strokec12 '\uc0\u35531 \u36664 \u20837 \u20219 \u21209 \u27161 \u38988 \u65281 '\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 false\cf8 \strokec8 );\cf5 \strokec5  \cf13 \strokec13 return\cf8 \strokec8 ;\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  taskIndex \cf8 \strokec8 =\cf5 \strokec5  tasks\cf8 \strokec8 .\cf5 \strokec5 findIndex\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  t\cf8 \strokec8 .\cf5 \strokec5 id \cf8 \strokec8 ===\cf5 \strokec5  currentEditTaskId\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 taskIndex \cf8 \strokec8 !==\cf5 \strokec5  \cf8 \strokec8 -\cf11 \strokec11 1\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 tasks\cf8 \strokec8 [\cf5 \strokec5 taskIndex\cf8 \strokec8 ].\cf5 \strokec5 text \cf8 \strokec8 =\cf5 \strokec5  title\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 tasks\cf8 \strokec8 [\cf5 \strokec5 taskIndex\cf8 \strokec8 ].\cf5 \strokec5 description \cf8 \strokec8 =\cf5 \strokec5  desc\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 tasks\cf8 \strokec8 [\cf5 \strokec5 taskIndex\cf8 \strokec8 ].\cf5 \strokec5 category \cf8 \strokec8 =\cf5 \strokec5  category\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 saveData\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3                 closeEditModal\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3                 showToast\cf8 \strokec8 (\cf12 \strokec12 '\uc0\u20219 \u21209 \u24050 \u26356 \u26032 \u65281 '\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf10 \strokec10 // --- \uc0\u21295 \u20986 \u21151 \u33021  ---\cf5 \cb1 \strokec5 \
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  exportReport\cf8 \strokec8 ()\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  currentTasks \cf8 \strokec8 =\cf5 \strokec5  tasks\cf8 \strokec8 .\cf5 \strokec5 filter\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  t\cf8 \strokec8 .\cf5 \strokec5 date \cf8 \strokec8 ===\cf5 \strokec5  selectedDateStr\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  doneTasks \cf8 \strokec8 =\cf5 \strokec5  currentTasks\cf8 \strokec8 .\cf5 \strokec5 filter\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  t\cf8 \strokec8 .\cf5 \strokec5 status \cf8 \strokec8 ===\cf5 \strokec5  \cf12 \strokec12 'done'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  inprogressTasks \cf8 \strokec8 =\cf5 \strokec5  currentTasks\cf8 \strokec8 .\cf5 \strokec5 filter\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  t\cf8 \strokec8 .\cf5 \strokec5 status \cf8 \strokec8 ===\cf5 \strokec5  \cf12 \strokec12 'inprogress'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  todoTasks \cf8 \strokec8 =\cf5 \strokec5  currentTasks\cf8 \strokec8 .\cf5 \strokec5 filter\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  t\cf8 \strokec8 .\cf5 \strokec5 status \cf8 \strokec8 ===\cf5 \strokec5  \cf12 \strokec12 'todo'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  formatTask \cf8 \strokec8 =\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 t\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 =>\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 let\cf5 \strokec5  text \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 ` - [\cf8 \strokec8 $\{\cf5 \strokec5 t\cf8 \strokec8 .\cf5 \strokec5 category\cf8 \strokec8 \}\cf12 \strokec12 ] \cf8 \strokec8 $\{\cf5 \strokec5 t\cf8 \strokec8 .\cf5 \strokec5 text\cf8 \strokec8 \}\cf12 \strokec12 `\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 t\cf8 \strokec8 .\cf5 \strokec5 description\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                     text \cf8 \strokec8 +=\cf5 \strokec5  \cf12 \strokec12 `\\n   \uc0\u20633 \u35387 : \cf8 \strokec8 $\{\cf5 \strokec5 t\cf8 \strokec8 .\cf5 \strokec5 description\cf8 \strokec8 .\cf5 \strokec5 replace\cf8 \strokec8 (\cf15 \strokec15 /\\n/\cf13 \strokec13 g\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 '\\n   '\cf8 \strokec8 )\}\cf12 \strokec12 `\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3                 \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3                 \cf13 \strokec13 return\cf5 \strokec5  text \cf8 \strokec8 +\cf5 \strokec5  \cf12 \strokec12 '\\n'\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \};\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf13 \strokec13 let\cf5 \strokec5  report \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 `\uc0\u55357 \u56517  \u24037 \u20316 \u26085 \u35468 \u65306 \cf8 \strokec8 $\{\cf5 \strokec5 selectedDateStr\cf8 \strokec8 \}\cf12 \strokec12 \\n\\n`\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             report \cf8 \strokec8 +=\cf5 \strokec5  \cf12 \strokec12 `\uc0\u9989  \u12304 \u24050 \u23436 \u25104 \u12305 (\cf8 \strokec8 $\{\cf5 \strokec5 doneTasks\cf8 \strokec8 .\cf5 \strokec5 length\cf8 \strokec8 \}\cf12 \strokec12 )\\n`\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             doneTasks\cf8 \strokec8 .\cf5 \strokec5 forEach\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  report \cf8 \strokec8 +=\cf5 \strokec5  formatTask\cf8 \strokec8 (\cf5 \strokec5 t\cf8 \strokec8 ));\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 doneTasks\cf8 \strokec8 .\cf5 \strokec5 length \cf8 \strokec8 ===\cf5 \strokec5  \cf11 \strokec11 0\cf8 \strokec8 )\cf5 \strokec5  report \cf8 \strokec8 +=\cf5 \strokec5  \cf12 \strokec12 ` - \uc0\u28961 \\n`\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cb1 \
-\cb3             report \cf8 \strokec8 +=\cf5 \strokec5  \cf12 \strokec12 `\\n\uc0\u55357 \u56960  \u12304 \u36914 \u34892 \u20013 \u12305 (\cf8 \strokec8 $\{\cf5 \strokec5 inprogressTasks\cf8 \strokec8 .\cf5 \strokec5 length\cf8 \strokec8 \}\cf12 \strokec12 )\\n`\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             inprogressTasks\cf8 \strokec8 .\cf5 \strokec5 forEach\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  report \cf8 \strokec8 +=\cf5 \strokec5  formatTask\cf8 \strokec8 (\cf5 \strokec5 t\cf8 \strokec8 ));\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 inprogressTasks\cf8 \strokec8 .\cf5 \strokec5 length \cf8 \strokec8 ===\cf5 \strokec5  \cf11 \strokec11 0\cf8 \strokec8 )\cf5 \strokec5  report \cf8 \strokec8 +=\cf5 \strokec5  \cf12 \strokec12 ` - \uc0\u28961 \\n`\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\
-\cb3             report \cf8 \strokec8 +=\cf5 \strokec5  \cf12 \strokec12 `\\n\uc0\u55357 \u56524  \u12304 \u24453 \u36774 \u38917 \u30446 \u12305 (\cf8 \strokec8 $\{\cf5 \strokec5 todoTasks\cf8 \strokec8 .\cf5 \strokec5 length\cf8 \strokec8 \}\cf12 \strokec12 )\\n`\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             todoTasks\cf8 \strokec8 .\cf5 \strokec5 forEach\cf8 \strokec8 (\cf5 \strokec5 t \cf8 \strokec8 =>\cf5 \strokec5  report \cf8 \strokec8 +=\cf5 \strokec5  formatTask\cf8 \strokec8 (\cf5 \strokec5 t\cf8 \strokec8 ));\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 todoTasks\cf8 \strokec8 .\cf5 \strokec5 length \cf8 \strokec8 ===\cf5 \strokec5  \cf11 \strokec11 0\cf8 \strokec8 )\cf5 \strokec5  report \cf8 \strokec8 +=\cf5 \strokec5  \cf12 \strokec12 ` - \uc0\u28961 \\n`\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\
-\cb3             \cf13 \strokec13 if\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 navigator\cf8 \strokec8 .\cf5 \strokec5 clipboard \cf8 \strokec8 &&\cf5 \strokec5  window\cf8 \strokec8 .\cf5 \strokec5 isSecureContext\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3                 navigator\cf8 \strokec8 .\cf5 \strokec5 clipboard\cf8 \strokec8 .\cf5 \strokec5 writeText\cf8 \strokec8 (\cf5 \strokec5 report\cf8 \strokec8 ).\cf5 \strokec5 then\cf8 \strokec8 (()\cf5 \strokec5  \cf8 \strokec8 =>\cf5 \strokec5  showToast\cf8 \strokec8 (\cf12 \strokec12 '\uc0\u22577 \u34920 \u24050 \u35079 \u35069 \u21040 \u21098 \u36028 \u31807 \u65281 '\cf8 \strokec8 )).\cf13 \strokec13 catch\cf8 \strokec8 (\cf5 \strokec5 err \cf8 \strokec8 =>\cf5 \strokec5  fallbackCopy\cf8 \strokec8 (\cf5 \strokec5 report\cf8 \strokec8 ));\cf5 \cb1 \strokec5 \
-\cb3             \cf8 \strokec8 \}\cf5 \strokec5  \cf13 \strokec13 else\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  fallbackCopy\cf8 \strokec8 (\cf5 \strokec5 report\cf8 \strokec8 );\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  fallbackCopy\cf8 \strokec8 (\cf5 \strokec5 text\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  ta \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 createElement\cf8 \strokec8 (\cf12 \strokec12 "textarea"\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             ta\cf8 \strokec8 .\cf5 \strokec5 value \cf8 \strokec8 =\cf5 \strokec5  text\cf8 \strokec8 ;\cf5 \strokec5  ta\cf8 \strokec8 .\cf5 \strokec5 style\cf8 \strokec8 .\cf5 \strokec5 position \cf8 \strokec8 =\cf5 \strokec5  \cf12 \strokec12 "fixed"\cf8 \strokec8 ;\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 body\cf8 \strokec8 .\cf5 \strokec5 appendChild\cf8 \strokec8 (\cf5 \strokec5 ta\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             ta\cf8 \strokec8 .\cf5 \strokec5 focus\cf8 \strokec8 ();\cf5 \strokec5  ta\cf8 \strokec8 .\cf5 \strokec5 select\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 try\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 execCommand\cf8 \strokec8 (\cf12 \strokec12 'copy'\cf8 \strokec8 );\cf5 \strokec5  showToast\cf8 \strokec8 (\cf12 \strokec12 '\uc0\u22577 \u34920 \u24050 \u35079 \u35069 \u21040 \u21098 \u36028 \u31807 \u65281 '\cf8 \strokec8 );\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \strokec5  \cb1 \
-\cb3             \cf13 \strokec13 catch\cf5 \strokec5  \cf8 \strokec8 (\cf5 \strokec5 err\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \strokec5  showToast\cf8 \strokec8 (\cf12 \strokec12 '\uc0\u35079 \u35069 \u22833 \u25943 \u65292 \u35531 \u25163 \u21205 \u35079 \u35069 '\cf8 \strokec8 ,\cf5 \strokec5  \cf13 \strokec13 false\cf8 \strokec8 );\cf5 \strokec5  \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\cb3             document\cf8 \strokec8 .\cf5 \strokec5 body\cf8 \strokec8 .\cf5 \strokec5 removeChild\cf8 \strokec8 (\cf5 \strokec5 ta\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         \cf13 \strokec13 function\cf5 \strokec5  showToast\cf8 \strokec8 (\cf5 \strokec5 message\cf8 \strokec8 ,\cf5 \strokec5  isSuccess \cf8 \strokec8 =\cf5 \strokec5  \cf13 \strokec13 true\cf8 \strokec8 )\cf5 \strokec5  \cf8 \strokec8 \{\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  toast \cf8 \strokec8 =\cf5 \strokec5  document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'toast'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             document\cf8 \strokec8 .\cf5 \strokec5 getElementById\cf8 \strokec8 (\cf12 \strokec12 'toast-message'\cf8 \strokec8 ).\cf5 \strokec5 textContent \cf8 \strokec8 =\cf5 \strokec5  message\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             \cf13 \strokec13 const\cf5 \strokec5  icon \cf8 \strokec8 =\cf5 \strokec5  toast\cf8 \strokec8 .\cf5 \strokec5 querySelector\cf8 \strokec8 (\cf12 \strokec12 'i'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             icon\cf8 \strokec8 .\cf5 \strokec5 setAttribute\cf8 \strokec8 (\cf12 \strokec12 'data-lucide'\cf8 \strokec8 ,\cf5 \strokec5  isSuccess \cf8 \strokec8 ?\cf5 \strokec5  \cf12 \strokec12 'check-circle-2'\cf5 \strokec5  \cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'x-circle'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             icon\cf8 \strokec8 .\cf5 \strokec5 className \cf8 \strokec8 =\cf5 \strokec5  isSuccess \cf8 \strokec8 ?\cf5 \strokec5  \cf12 \strokec12 'text-brand-400'\cf5 \strokec5  \cf8 \strokec8 :\cf5 \strokec5  \cf12 \strokec12 'text-red-400'\cf8 \strokec8 ;\cf5 \cb1 \strokec5 \
-\cb3             lucide\cf8 \strokec8 .\cf5 \strokec5 createIcons\cf8 \strokec8 ();\cf5 \cb1 \strokec5 \
-\cb3             toast\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 remove\cf8 \strokec8 (\cf12 \strokec12 'translate-y-20'\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 'opacity-0'\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3             setTimeout\cf8 \strokec8 (()\cf5 \strokec5  \cf8 \strokec8 =>\cf5 \strokec5  toast\cf8 \strokec8 .\cf5 \strokec5 classList\cf8 \strokec8 .\cf5 \strokec5 add\cf8 \strokec8 (\cf12 \strokec12 'translate-y-20'\cf8 \strokec8 ,\cf5 \strokec5  \cf12 \strokec12 'opacity-0'\cf8 \strokec8 ),\cf5 \strokec5  \cf11 \strokec11 3000\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3         \cf8 \strokec8 \}\cf5 \cb1 \strokec5 \
-\
-\cb3         window\cf8 \strokec8 .\cf5 \strokec5 addEventListener\cf8 \strokec8 (\cf12 \strokec12 'DOMContentLoaded'\cf8 \strokec8 ,\cf5 \strokec5  init\cf8 \strokec8 );\cf5 \cb1 \strokec5 \
-\cb3     \cf6 \strokec6 </\cf2 \strokec2 script\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\pard\pardeftab720\partightenfactor0
-\cf6 \cb3 \strokec6 </\cf2 \strokec2 body\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-\cf6 \cb3 \strokec6 </\cf2 \strokec2 html\cf6 \strokec6 >\cf5 \cb1 \strokec5 \
-}
+    <!-- 頂部導覽 -->
+    <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-brand-500 text-white p-2 rounded-lg">
+                <i data-lucide="calendar-days"></i>
+            </div>
+            <h1 class="text-xl font-bold text-slate-800">日曆工作看板</h1>
+        </div>
+        
+        <button onclick="exportReport()" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors text-sm">
+            <i data-lucide="clipboard-copy" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">匯出單日報表</span>
+        </button>
+    </header>
+
+    <!-- 主要內容區 (側邊日曆 + 右側看板) -->
+    <main class="flex-1 overflow-auto p-4 sm:p-6 flex flex-col lg:flex-row gap-6">
+        
+        <!-- 左側：日曆與數據 -->
+        <aside class="w-full lg:w-80 shrink-0 flex flex-col gap-6">
+            <!-- 日曆模組 -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                <div class="flex justify-between items-center mb-4">
+                    <button onclick="changeMonth(-1)" class="p-1 hover:bg-slate-100 rounded text-slate-500">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </button>
+                    <h2 id="calendar-month-year" class="font-bold text-slate-700">2023年 10月</h2>
+                    <button onclick="changeMonth(1)" class="p-1 hover:bg-slate-100 rounded text-slate-500">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                
+                <div class="calendar-grid text-center text-xs font-medium text-slate-400 mb-2">
+                    <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+                </div>
+                
+                <div id="calendar-days" class="calendar-grid">
+                    <!-- 日曆天數由 JS 生成 -->
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <button onclick="goToToday()" class="text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 px-3 py-1.5 rounded">
+                        回到今天
+                    </button>
+                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span> 待辦</span>
+                        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span> 完成</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 選定日期的進度追蹤 -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="w-4 h-4 text-brand-500"></i> 單日任務進度
+                </h3>
+                <div class="flex justify-between text-2xl font-bold mb-1">
+                    <span id="progress-text" class="text-brand-600">0%</span>
+                    <span id="task-count-text" class="text-slate-400 text-sm font-medium self-end mb-1">0 / 0 項</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div id="progress-bar" class="bg-brand-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 右側：任務看板 -->
+        <section class="flex-1 flex flex-col min-w-0">
+            
+            <!-- 日期標題與輸入區 -->
+            <div class="mb-6">
+                <h2 id="selected-date-title" class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <!-- 日期標題由 JS 生成 -->
+                </h2>
+                
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col xl:flex-row gap-3">
+                    <div class="flex-1 flex flex-col gap-2">
+                        <div class="relative flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="plus-circle" class="w-5 h-5 text-slate-400"></i>
+                            </div>
+                            <input type="text" id="task-input" placeholder="這天需要做些什麼？ (按 Enter 快速新增)" 
+                                   class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-colors">
+                        </div>
+                        <textarea id="task-desc-input" placeholder="任務詳細內容或備註 (選填)..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all resize-none h-10 focus:h-20 text-sm no-scrollbar"></textarea>
+                    </div>
+                    
+                    <div class="flex gap-3 h-[46px] mt-1 xl:mt-0 shrink-0">
+                        <select id="category-input" class="px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium text-slate-700 cursor-pointer">
+                            <!-- 分類由 JS 生成 -->
+                        </select>
+                        <button onclick="openCategoryModal()" class="px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 flex items-center justify-center" title="管理工作分類">
+                            <i data-lucide="settings-2" class="w-5 h-5"></i>
+                        </button>
+                        <button onclick="addTask()" class="bg-brand-500 hover:bg-brand-600 text-white px-6 rounded-lg font-medium transition-colors shadow-sm shadow-brand-500/30 whitespace-nowrap">
+                            新增任務
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 看板區 -->
+            <div class="flex flex-col md:flex-row gap-4 lg:gap-6 flex-1 min-h-0">
+                <!-- 待辦 (To Do) -->
+                <div class="flex-1 flex flex-col bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
+                    <div class="p-3 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center shrink-0">
+                        <h3 class="font-bold text-slate-700 flex items-center gap-2 text-sm">
+                            <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span> 待辦 (To Do)
+                        </h3>
+                        <span id="count-todo" class="bg-slate-200 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone" id="todo" data-status="todo"></div>
+                </div>
+
+                <!-- 進行中 (In Progress) -->
+                <div class="flex-1 flex flex-col bg-blue-50 rounded-xl overflow-hidden border border-blue-100">
+                    <div class="p-3 border-b border-blue-100 bg-white/50 flex justify-between items-center shrink-0">
+                        <h3 class="font-bold text-blue-800 flex items-center gap-2 text-sm">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> 進行中 (Doing)
+                        </h3>
+                        <span id="count-inprogress" class="bg-blue-200 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone" id="inprogress" data-status="inprogress"></div>
+                </div>
+
+                <!-- 已完成 (Done) -->
+                <div class="flex-1 flex flex-col bg-brand-50 rounded-xl overflow-hidden border border-brand-100">
+                    <div class="p-3 border-b border-brand-100 bg-white/50 flex justify-between items-center shrink-0">
+                        <h3 class="font-bold text-brand-800 flex items-center gap-2 text-sm">
+                            <span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span> 已完成 (Done)
+                        </h3>
+                        <span id="count-done" class="bg-brand-200 text-brand-800 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone" id="done" data-status="done"></div>
+                </div>
+            </div>
+            
+        </section>
+    </main>
+
+    <!-- 分類管理 Modal (維持原本功能) -->
+    <div id="category-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden flex flex-col transform scale-95 transition-transform duration-300" id="category-modal-content">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="tags" class="w-5 h-5 text-brand-500"></i> 管理工作分類
+                </h3>
+                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 flex-1 overflow-y-auto max-h-[50vh]">
+                <ul id="category-list" class="flex flex-col gap-2"></ul>
+            </div>
+            <div class="p-6 border-t border-slate-100 bg-slate-50">
+                <h4 class="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i> 新增分類
+                </h4>
+                <div class="flex flex-col gap-3">
+                    <input type="text" id="new-category-name" placeholder="輸入分類名稱" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                    <div class="flex gap-3 items-center">
+                        <span class="text-xs font-medium text-slate-500">選擇顏色：</span>
+                        <div id="color-picker" class="flex gap-2 flex-wrap"></div>
+                    </div>
+                    <button onclick="addNewCategory()" class="w-full mt-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                        新增分類
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 編輯任務 Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 overflow-hidden flex flex-col transform scale-95 transition-transform duration-300" id="edit-modal-content">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="edit" class="w-5 h-5 text-brand-500"></i> 編輯任務
+                </h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 flex flex-col gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">任務標題</label>
+                    <input type="text" id="edit-task-title" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">工作分類</label>
+                    <select id="edit-task-category" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer">
+                        <!-- 動態生成 -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">詳細內容</label>
+                    <textarea id="edit-task-desc" rows="4" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <button onclick="closeEditModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-lg transition-colors">取消</button>
+                <button onclick="saveEditedTask()" class="px-4 py-2 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm">儲存變更</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 訊息提示 -->
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50">
+        <i data-lucide="check-circle-2" class="text-brand-400"></i>
+        <span id="toast-message">訊息</span>
+    </div>
+
+    <script>
+        // 日期與狀態管理
+        let tasks = [];
+        let categories = [];
+        const STORAGE_KEY = 'daily_tasks_data_v2'; // 更新 key 避免舊版格式衝突
+        const STORAGE_KEY_CATS = 'daily_tasks_categories';
+        
+        let displayDate = new Date(); // 日曆顯示的月份
+        let selectedDateStr = getLocalISODate(new Date()); // 當前選中編輯的日期 (YYYY-MM-DD)
+
+        const colorThemes = [
+            { value: 'purple', class: 'bg-purple-100 text-purple-700 border-purple-200', dotClass: 'bg-purple-500 ring-purple-500' },
+            { value: 'blue', class: 'bg-blue-100 text-blue-700 border-blue-200', dotClass: 'bg-blue-500 ring-blue-500' },
+            { value: 'emerald', class: 'bg-emerald-100 text-emerald-700 border-emerald-200', dotClass: 'bg-emerald-500 ring-emerald-500' },
+            { value: 'amber', class: 'bg-amber-100 text-amber-700 border-amber-200', dotClass: 'bg-amber-500 ring-amber-500' },
+            { value: 'rose', class: 'bg-rose-100 text-rose-700 border-rose-200', dotClass: 'bg-rose-500 ring-rose-500' },
+            { value: 'slate', class: 'bg-slate-100 text-slate-700 border-slate-200', dotClass: 'bg-slate-500 ring-slate-500' }
+        ];
+        let selectedNewCategoryColor = colorThemes[0];
+
+        // 取得本地時區的 YYYY-MM-DD 字串
+        function getLocalISODate(dateObj) {
+            const tzOffset = dateObj.getTimezoneOffset() * 60000;
+            return new Date(dateObj - tzOffset).toISOString().split('T')[0];
+        }
+
+        // 初始化
+        function init() {
+            lucide.createIcons();
+            loadCategories();
+            loadData();
+            
+            document.getElementById('task-input').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') addTask();
+            });
+            setupDragAndDrop();
+        }
+
+        // 資料讀取與轉移
+        function loadData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try { tasks = JSON.parse(saved); } catch (e) { tasks = []; }
+            } else {
+                // 嘗試讀取舊版資料並進行轉移 (加入 date 屬性)
+                const oldSaved = localStorage.getItem('daily_tasks_data');
+                if (oldSaved) {
+                    try {
+                        const oldTasks = JSON.parse(oldSaved);
+                        tasks = oldTasks.map(t => ({
+                            ...t,
+                            date: t.date || getLocalISODate(new Date(t.timestamp || Date.now()))
+                        }));
+                        saveData();
+                    } catch (e) { tasks = []; }
+                }
+            }
+            refreshView();
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+            refreshView();
+        }
+
+        // 畫面刷新總控
+        function refreshView() {
+            renderCalendar();
+            updateUI();
+        }
+
+        // --- 日曆功能 ---
+        function changeMonth(offset) {
+            displayDate.setMonth(displayDate.getMonth() + offset);
+            renderCalendar();
+        }
+
+        function goToToday() {
+            displayDate = new Date();
+            selectedDateStr = getLocalISODate(displayDate);
+            refreshView();
+        }
+
+        function selectDate(dateStr) {
+            selectedDateStr = dateStr;
+            updateUI();
+            renderCalendar(); // 更新選中狀態
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-days');
+            grid.innerHTML = '';
+            
+            const year = displayDate.getFullYear();
+            const month = displayDate.getMonth();
+            document.getElementById('calendar-month-year').textContent = `${year}年 ${month + 1}月`;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const todayStr = getLocalISODate(new Date());
+
+            // 填充上個月的空白
+            for (let i = 0; i < firstDay; i++) {
+                grid.innerHTML += `<div class="p-2"></div>`;
+            }
+
+            // 渲染當月天數
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const isSelected = dateStr === selectedDateStr;
+                const isToday = dateStr === todayStr;
+                
+                // 計算該日的任務狀況 (產生小點點)
+                const dayTasks = tasks.filter(t => t.date === dateStr);
+                const doneTasks = dayTasks.filter(t => t.status === 'done');
+                const hasTasks = dayTasks.length > 0;
+                const allDone = hasTasks && (doneTasks.length === dayTasks.length);
+
+                let btnClass = 'p-1 cursor-pointer flex flex-col items-center justify-center rounded-lg transition-all min-h-[44px] hover:bg-slate-100 ';
+                let textClass = 'text-slate-700 font-medium text-sm ';
+                
+                if (isSelected) {
+                    btnClass = 'p-1 cursor-pointer flex flex-col items-center justify-center rounded-lg transition-all min-h-[44px] bg-brand-500 shadow-md shadow-brand-500/30 ';
+                    textClass = 'text-white font-bold text-sm ';
+                } else if (isToday) {
+                    btnClass += 'bg-brand-50 ring-1 ring-inset ring-brand-200 ';
+                    textClass = 'text-brand-700 font-bold text-sm ';
+                }
+
+                let dotHtml = '';
+                if (hasTasks) {
+                    const dotColor = isSelected ? 'bg-white' : (allDone ? 'bg-brand-500' : 'bg-slate-300');
+                    dotHtml = `<div class="w-1.5 h-1.5 rounded-full mt-1 ${dotColor}"></div>`;
+                }
+
+                const cell = document.createElement('div');
+                cell.className = btnClass;
+                cell.onclick = () => selectDate(dateStr);
+                cell.innerHTML = `<span class="${textClass}">${i}</span>${dotHtml}`;
+                grid.appendChild(cell);
+            }
+        }
+
+        // --- 看板與任務功能 ---
+        function updateUI() {
+            // 更新右側日期標題
+            const dateObj = new Date(selectedDateStr);
+            const weekday = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
+            const titleDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
+            
+            let titlePrefix = '';
+            if (selectedDateStr === getLocalISODate(new Date())) titlePrefix = '✨ 今天 - ';
+            document.getElementById('selected-date-title').innerHTML = `${titlePrefix}${titleDate} <span class="text-slate-400 text-lg font-normal ml-2">(星期${weekday})</span>`;
+
+            // 過濾出選定日期的任務
+            const currentTasks = tasks.filter(t => t.date === selectedDateStr);
+            
+            const columns = {
+                todo: document.getElementById('todo'),
+                inprogress: document.getElementById('inprogress'),
+                done: document.getElementById('done')
+            };
+
+            Object.values(columns).forEach(col => col.innerHTML = '');
+            let counts = { todo: 0, inprogress: 0, done: 0 };
+
+            // 排序並渲染
+            const sortedTasks = [...currentTasks].sort((a, b) => b.timestamp - a.timestamp);
+            sortedTasks.forEach(task => {
+                if (columns[task.status]) {
+                    counts[task.status]++;
+                    columns[task.status].appendChild(createTaskElement(task));
+                }
+            });
+
+            // 更新計數器
+            document.getElementById('count-todo').textContent = counts.todo;
+            document.getElementById('count-inprogress').textContent = counts.inprogress;
+            document.getElementById('count-done').textContent = counts.done;
+
+            // 更新選定日期的進度條
+            const totalTasks = currentTasks.length;
+            const doneTasks = counts.done;
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const taskCountText = document.getElementById('task-count-text');
+            
+            taskCountText.textContent = `${doneTasks} / ${totalTasks} 項`;
+            if (totalTasks === 0) {
+                progressBar.style.width = '0%';
+                progressText.textContent = '0%';
+            } else {
+                const percentage = Math.round((doneTasks / totalTasks) * 100);
+                progressBar.style.width = percentage + '%';
+                progressText.textContent = percentage + '%';
+            }
+
+            lucide.createIcons();
+        }
+
+        function addTask() {
+            const input = document.getElementById('task-input');
+            const descInput = document.getElementById('task-desc-input');
+            const category = document.getElementById('category-input').value;
+            const text = input.value.trim();
+            const desc = descInput ? descInput.value.trim() : '';
+            
+            if (text === '') { showToast('請輸入任務名稱！', false); return; }
+
+            tasks.push({
+                id: Math.random().toString(36).substr(2, 9),
+                text: text,
+                description: desc,
+                category: category,
+                status: 'todo',
+                date: selectedDateStr, // 綁定到當前選擇的日期
+                timestamp: Date.now()
+            });
+
+            input.value = '';
+            if (descInput) descInput.value = '';
+            saveData();
+            showToast('已新增到 ' + selectedDateStr);
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(task => task.id !== id);
+            saveData();
+        }
+
+        function updateTaskStatus(id, newStatus) {
+            const taskIndex = tasks.findIndex(task => task.id === id);
+            if (taskIndex !== -1 && tasks[taskIndex].status !== newStatus) {
+                tasks[taskIndex].status = newStatus;
+                saveData();
+            }
+        }
+
+        function createTaskElement(task) {
+            const card = document.createElement('div');
+            card.className = 'task-card bg-white p-3 rounded-lg shadow-sm border border-slate-200 mb-2.5 flex flex-col gap-2 group relative';
+            card.draggable = true;
+            card.dataset.id = task.id;
+
+            const catInfo = categories.find(c => c.name === task.category);
+            const colorClass = catInfo ? catInfo.colorClass : 'bg-slate-100 text-slate-700 border-slate-200';
+
+            const statusButtons = `
+                <div class="flex gap-1 mt-1 sm:hidden border-t pt-2 border-slate-100">
+                    ${task.status !== 'todo' ? `<button onclick="updateTaskStatus('${task.id}', 'todo')" class="flex-1 text-xs py-1 rounded bg-slate-100 text-slate-600">待辦</button>` : ''}
+                    ${task.status !== 'inprogress' ? `<button onclick="updateTaskStatus('${task.id}', 'inprogress')" class="flex-1 text-xs py-1 rounded bg-blue-50 text-blue-600">進行</button>` : ''}
+                    ${task.status !== 'done' ? `<button onclick="updateTaskStatus('${task.id}', 'done')" class="flex-1 text-xs py-1 rounded bg-brand-50 text-brand-600">完成</button>` : ''}
+                </div>
+            `;
+            
+            // 處理內容換行與防範 XSS
+            const descHtml = task.description ? `<p class="text-xs text-slate-500 mt-0.5 whitespace-pre-wrap line-clamp-3 bg-slate-50 p-2 rounded">${task.description.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : '';
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start gap-2">
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded border ${colorClass}">${task.category}</span>
+                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 sm:opacity-100 transition-opacity">
+                        <button onclick="openEditModal('${task.id}')" class="text-slate-400 hover:text-blue-500 p-0.5" title="編輯任務">
+                            <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button onclick="deleteTask('${task.id}')" class="text-slate-400 hover:text-red-500 p-0.5" title="刪除任務">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+                <p class="text-sm text-slate-700 font-medium leading-snug break-words ${task.status === 'done' ? 'line-through text-slate-400' : ''}">${task.text}</p>
+                ${descHtml}
+                ${statusButtons}
+            `;
+
+            card.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', task.id);
+                e.dataTransfer.effectAllowed = 'move';
+                setTimeout(() => card.classList.add('dragging'), 0);
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                document.querySelectorAll('.column-drop-zone').forEach(zone => zone.classList.remove('drag-over'));
+            });
+
+            return card;
+        }
+
+        function setupDragAndDrop() {
+            document.querySelectorAll('.column-drop-zone').forEach(zone => {
+                zone.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    zone.classList.add('drag-over');
+                });
+                zone.addEventListener('dragleave', e => zone.classList.remove('drag-over'));
+                zone.addEventListener('drop', e => {
+                    e.preventDefault();
+                    zone.classList.remove('drag-over');
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    if (taskId && zone.dataset.status) updateTaskStatus(taskId, zone.dataset.status);
+                });
+            });
+        }
+
+        // --- 分類管理 (與舊版相同邏輯) ---
+        function loadCategories() {
+            const saved = localStorage.getItem(STORAGE_KEY_CATS);
+            if (saved) {
+                try { categories = JSON.parse(saved); } catch (e) { initDefaultCategories(); }
+            } else { initDefaultCategories(); }
+            renderCategorySelect();
+        }
+
+        function initDefaultCategories() {
+            categories = [
+                { id: 'cat_1', name: '視覺設計', colorClass: colorThemes.find(c => c.value === 'purple').class },
+                { id: 'cat_2', name: '網頁開發', colorClass: colorThemes.find(c => c.value === 'blue').class },
+                { id: 'cat_3', name: '專案溝通', colorClass: colorThemes.find(c => c.value === 'amber').class },
+                { id: 'cat_4', name: '日常行政', colorClass: colorThemes.find(c => c.value === 'emerald').class }
+            ];
+            localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(categories));
+        }
+
+        function renderCategorySelect() {
+            const select = document.getElementById('category-input');
+            select.innerHTML = '';
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.name; opt.textContent = cat.name;
+                select.appendChild(opt);
+            });
+        }
+
+        function openCategoryModal() {
+            renderCategoryList(); renderColorPicker();
+            const modal = document.getElementById('category-modal');
+            const content = document.getElementById('category-modal-content');
+            modal.classList.remove('hidden'); void modal.offsetWidth;
+            modal.classList.remove('opacity-0'); content.classList.remove('scale-95');
+            lucide.createIcons();
+        }
+
+        function closeCategoryModal() {
+            const modal = document.getElementById('category-modal');
+            const content = document.getElementById('category-modal-content');
+            modal.classList.add('opacity-0'); content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function renderCategoryList() {
+            const list = document.getElementById('category-list');
+            list.innerHTML = '';
+            categories.forEach(cat => {
+                list.innerHTML += `
+                    <li class="flex justify-between items-center p-3 rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <span class="text-xs font-semibold px-2.5 py-1.5 rounded-md border ${cat.colorClass}">${cat.name}</span>
+                        <button onclick="deleteCategory('${cat.id}')" class="text-slate-400 hover:text-red-500 p-1.5 transition-colors rounded-md hover:bg-red-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </li>`;
+            });
+            lucide.createIcons();
+        }
+
+        function renderColorPicker() {
+            const picker = document.getElementById('color-picker');
+            picker.innerHTML = '';
+            colorThemes.forEach(theme => {
+                const isSelected = selectedNewCategoryColor.value === theme.value;
+                const ringClass = isSelected ? 'ring-2 ring-offset-2' : '';
+                const btn = document.createElement('button');
+                btn.className = `w-6 h-6 rounded-full cursor-pointer transition-all hover:scale-110 ${theme.dotClass.split(' ')[0]} ${isSelected ? theme.dotClass.split(' ')[1] + ' ' + ringClass : ''}`;
+                btn.onclick = () => { selectedNewCategoryColor = theme; renderColorPicker(); };
+                picker.appendChild(btn);
+            });
+        }
+
+        function addNewCategory() {
+            const name = document.getElementById('new-category-name').value.trim();
+            if (!name) return showToast('請輸入分類名稱！', false);
+            if (categories.some(c => c.name === name)) return showToast('此分類名稱已存在！', false);
+            
+            categories.push({ id: 'cat_' + Math.random().toString(36).substr(2, 9), name: name, colorClass: selectedNewCategoryColor.class });
+            localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(categories));
+            renderCategorySelect(); renderCategoryList();
+            document.getElementById('new-category-name').value = '';
+            showToast('分類新增成功！'); updateUI();
+        }
+
+        function deleteCategory(id) {
+            if (categories.length <= 1) return showToast('請至少保留一個分類！', false);
+            categories = categories.filter(c => c.id !== id);
+            localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(categories));
+            renderCategorySelect(); renderCategoryList(); updateUI(); showToast('分類已刪除');
+        }
+
+        // --- 編輯任務功能 ---
+        let currentEditTaskId = null;
+
+        function openEditModal(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            currentEditTaskId = taskId;
+            document.getElementById('edit-task-title').value = task.text;
+            document.getElementById('edit-task-desc').value = task.description || '';
+            
+            // 準備分類選單
+            const select = document.getElementById('edit-task-category');
+            select.innerHTML = '';
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.name; opt.textContent = cat.name;
+                select.appendChild(opt);
+            });
+            select.value = task.category;
+
+            const modal = document.getElementById('edit-modal');
+            const content = document.getElementById('edit-modal-content');
+            modal.classList.remove('hidden'); void modal.offsetWidth;
+            modal.classList.remove('opacity-0'); content.classList.remove('scale-95');
+            lucide.createIcons();
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('edit-modal');
+            const content = document.getElementById('edit-modal-content');
+            modal.classList.add('opacity-0'); content.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                currentEditTaskId = null;
+            }, 300);
+        }
+
+        function saveEditedTask() {
+            if (!currentEditTaskId) return;
+            const title = document.getElementById('edit-task-title').value.trim();
+            const desc = document.getElementById('edit-task-desc').value.trim();
+            const category = document.getElementById('edit-task-category').value;
+            
+            if (title === '') { showToast('請輸入任務標題！', false); return; }
+            
+            const taskIndex = tasks.findIndex(t => t.id === currentEditTaskId);
+            if (taskIndex !== -1) {
+                tasks[taskIndex].text = title;
+                tasks[taskIndex].description = desc;
+                tasks[taskIndex].category = category;
+                saveData();
+                closeEditModal();
+                showToast('任務已更新！');
+            }
+        }
+
+        // --- 匯出功能 ---
+        function exportReport() {
+            const currentTasks = tasks.filter(t => t.date === selectedDateStr);
+            const doneTasks = currentTasks.filter(t => t.status === 'done');
+            const inprogressTasks = currentTasks.filter(t => t.status === 'inprogress');
+            const todoTasks = currentTasks.filter(t => t.status === 'todo');
+
+            const formatTask = (t) => {
+                let text = ` - [${t.category}] ${t.text}`;
+                if (t.description) {
+                    text += `\n   備註: ${t.description.replace(/\n/g, '\n   ')}`;
+                }
+                return text + '\n';
+            };
+
+            let report = `📅 工作日誌：${selectedDateStr}\n\n`;
+            
+            report += `✅ 【已完成】(${doneTasks.length})\n`;
+            doneTasks.forEach(t => report += formatTask(t));
+            if (doneTasks.length === 0) report += ` - 無\n`;
+            
+            report += `\n🚀 【進行中】(${inprogressTasks.length})\n`;
+            inprogressTasks.forEach(t => report += formatTask(t));
+            if (inprogressTasks.length === 0) report += ` - 無\n`;
+
+            report += `\n📌 【待辦項目】(${todoTasks.length})\n`;
+            todoTasks.forEach(t => report += formatTask(t));
+            if (todoTasks.length === 0) report += ` - 無\n`;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(report).then(() => showToast('報表已複製到剪貼簿！')).catch(err => fallbackCopy(report));
+            } else { fallbackCopy(report); }
+        }
+
+        function fallbackCopy(text) {
+            const ta = document.createElement("textarea");
+            ta.value = text; ta.style.position = "fixed"; document.body.appendChild(ta);
+            ta.focus(); ta.select();
+            try { document.execCommand('copy'); showToast('報表已複製到剪貼簿！'); } 
+            catch (err) { showToast('複製失敗，請手動複製', false); }
+            document.body.removeChild(ta);
+        }
+
+        function showToast(message, isSuccess = true) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = message;
+            const icon = toast.querySelector('i');
+            icon.setAttribute('data-lucide', isSuccess ? 'check-circle-2' : 'x-circle');
+            icon.className = isSuccess ? 'text-brand-400' : 'text-red-400';
+            lucide.createIcons();
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
