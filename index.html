@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>漢光的工作看板</title>
+    <title>漢光的工作看板 (雲端同步版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -55,17 +55,21 @@
 <body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
 
     <!-- 頂部導覽 -->
-    <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 shrink-0">
+    <header class="bg-white shadow-sm px-6 py-4 flex flex-col sm:flex-row justify-between items-center z-10 shrink-0 gap-4">
         <div class="flex items-center gap-3">
-            <div class="bg-brand-500 text-white p-2 rounded-lg">
+            <div class="bg-brand-500 text-white p-2 rounded-lg relative">
                 <i data-lucide="calendar-days"></i>
+                <div id="sync-dot" class="absolute -top-1 -right-1 w-3 h-3 bg-slate-400 rounded-full border-2 border-white transition-colors duration-300"></div>
             </div>
-            <h1 class="text-xl font-bold text-slate-800">漢光的工作看板</h1>
+            <div>
+                <h1 class="text-xl font-bold text-slate-800">漢光的工作看板</h1>
+                <p id="sync-status-text" class="text-xs text-slate-500 font-medium">連線中...</p>
+            </div>
         </div>
         
-        <button onclick="exportReport()" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors text-sm">
+        <button onclick="exportReport()" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors text-sm w-full sm:w-auto justify-center">
             <i data-lucide="clipboard-copy" class="w-4 h-4"></i>
-            <span class="hidden sm:inline">匯出單日報表</span>
+            <span>匯出單日報表</span>
         </button>
     </header>
 
@@ -80,7 +84,7 @@
                     <button onclick="changeMonth(-1)" class="p-1 hover:bg-slate-100 rounded text-slate-500">
                         <i data-lucide="chevron-left" class="w-5 h-5"></i>
                     </button>
-                    <h2 id="calendar-month-year" class="font-bold text-slate-700">2023年 10月</h2>
+                    <h2 id="calendar-month-year" class="font-bold text-slate-700">載入中...</h2>
                     <button onclick="changeMonth(1)" class="p-1 hover:bg-slate-100 rounded text-slate-500">
                         <i data-lucide="chevron-right" class="w-5 h-5"></i>
                     </button>
@@ -143,7 +147,7 @@
                     
                     <div class="flex gap-3 h-[46px] mt-1 xl:mt-0 shrink-0">
                         <select id="category-input" class="px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium text-slate-700 cursor-pointer">
-                            <!-- 分類由 JS 生成 -->
+                            <option>載入中...</option>
                         </select>
                         <button onclick="openCategoryModal()" class="px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 flex items-center justify-center" title="管理工作分類">
                             <i data-lucide="settings-2" class="w-5 h-5"></i>
@@ -165,7 +169,7 @@
                         </h3>
                         <span id="count-todo" class="bg-slate-200 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
                     </div>
-                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone" id="todo" data-status="todo"></div>
+                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone relative" id="todo" data-status="todo"></div>
                 </div>
 
                 <!-- 進行中 (In Progress) -->
@@ -176,7 +180,7 @@
                         </h3>
                         <span id="count-inprogress" class="bg-blue-200 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
                     </div>
-                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone" id="inprogress" data-status="inprogress"></div>
+                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone relative" id="inprogress" data-status="inprogress"></div>
                 </div>
 
                 <!-- 已完成 (Done) -->
@@ -187,7 +191,7 @@
                         </h3>
                         <span id="count-done" class="bg-brand-200 text-brand-800 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
                     </div>
-                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone" id="done" data-status="done"></div>
+                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone relative" id="done" data-status="done"></div>
                 </div>
             </div>
             
@@ -266,15 +270,36 @@
         <span id="toast-message">訊息</span>
     </div>
 
-    <script>
-        // 日期與狀態管理
+    <!-- 引入 Firebase 作為雲端資料庫 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- ⚠️ 部署到 GitHub Pages 前，請在這裡填入你自己的 Firebase 設定 ⚠️ ---
+const firebaseConfig = {
+  apiKey: "AIzaSyC5A4ypI6fKWsRzI-BTsl4ANVXBMKs1b6c",
+  authDomain: "henryjob-dedc8.firebaseapp.com",
+  projectId: "henryjob-dedc8",
+  storageBucket: "henryjob-dedc8.firebasestorage.app",
+  messagingSenderId: "1011435018124",
+  appId: "1:1011435018124:web:b58d955d5a1b5d30e2a8a9",
+  measurementId: "G-J43KCXFF1R"
+};
+        // ----------------------------------------------------------------
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // 狀態管理
         let tasks = [];
         let categories = [];
-        const STORAGE_KEY = 'daily_tasks_data_v2'; // 更新 key 避免舊版格式衝突
-        const STORAGE_KEY_CATS = 'daily_tasks_categories';
+        let currentUser = null;
+        let isOnline = false;
         
-        let displayDate = new Date(); // 日曆顯示的月份
-        let selectedDateStr = getLocalISODate(new Date()); // 當前選中編輯的日期 (YYYY-MM-DD)
+        let displayDate = new Date();
+        let selectedDateStr = getLocalISODate(new Date());
 
         const colorThemes = [
             { value: 'purple', class: 'bg-purple-100 text-purple-700 border-purple-200', dotClass: 'bg-purple-500 ring-purple-500' },
@@ -286,58 +311,161 @@
         ];
         let selectedNewCategoryColor = colorThemes[0];
 
-        // 取得本地時區的 YYYY-MM-DD 字串
+        // 將重要函數綁定到 window 讓 HTML onclick 可以呼叫
+        window.changeMonth = changeMonth;
+        window.goToToday = goToToday;
+        window.addTask = addTask;
+        window.deleteTask = deleteTask;
+        window.updateTaskStatus = updateTaskStatus;
+        window.openCategoryModal = openCategoryModal;
+        window.closeCategoryModal = closeCategoryModal;
+        window.addNewCategory = addNewCategory;
+        window.deleteCategory = deleteCategory;
+        window.openEditModal = openEditModal;
+        window.closeEditModal = closeEditModal;
+        window.saveEditedTask = saveEditedTask;
+        window.exportReport = exportReport;
+
         function getLocalISODate(dateObj) {
             const tzOffset = dateObj.getTimezoneOffset() * 60000;
             return new Date(dateObj - tzOffset).toISOString().split('T')[0];
         }
 
-        // 初始化
-        function init() {
+        // 啟動應用程式
+        async function init() {
             lucide.createIcons();
-            loadCategories();
-            loadData();
             
             document.getElementById('task-input').addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') addTask();
             });
             setupDragAndDrop();
-        }
 
-        // 資料讀取與轉移
-        function loadData() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try { tasks = JSON.parse(saved); } catch (e) { tasks = []; }
-            } else {
-                // 嘗試讀取舊版資料並進行轉移 (加入 date 屬性)
-                const oldSaved = localStorage.getItem('daily_tasks_data');
-                if (oldSaved) {
-                    try {
-                        const oldTasks = JSON.parse(oldSaved);
-                        tasks = oldTasks.map(t => ({
-                            ...t,
-                            date: t.date || getLocalISODate(new Date(t.timestamp || Date.now()))
-                        }));
-                        saveData();
-                    } catch (e) { tasks = []; }
-                }
+            // 1. 初始化 Firebase 登入 (使用標準的匿名登入)
+            try {
+                await signInAnonymously(auth);
+            } catch (e) {
+                console.error("Auth error", e);
+                showToast("無法連接雲端，請檢查 Firebase 設定", false);
             }
-            refreshView();
+
+            // 2. 監聽登入狀態並開啟同步
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (user) {
+                    setOnlineStatus(true);
+                    setupRealtimeListeners();
+                } else {
+                    setOnlineStatus(false);
+                }
+            });
+            
+            refreshView(); // 繪製初始無資料的框架
         }
 
-        function saveData() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-            refreshView();
+        function setOnlineStatus(online) {
+            isOnline = online;
+            const dot = document.getElementById('sync-dot');
+            const text = document.getElementById('sync-status-text');
+            if (online) {
+                dot.classList.replace('bg-slate-400', 'bg-green-500');
+                text.textContent = "已連線同步";
+                text.classList.replace('text-slate-500', 'text-green-600');
+            } else {
+                dot.classList.replace('bg-green-500', 'bg-slate-400');
+                text.textContent = "未連線";
+                text.classList.replace('text-green-600', 'text-slate-500');
+            }
         }
 
-        // 畫面刷新總控
+        // 設置 Firestore 即時監聽
+        function setupRealtimeListeners() {
+            if (!currentUser) return;
+
+            // 使用標準簡潔的集合路徑
+            const tasksRef = collection(db, 'tasks');
+            const catsRef = collection(db, 'categories');
+
+            // 監聽分類
+            onSnapshot(catsRef, (snapshot) => {
+                if (snapshot.empty) {
+                    // 若雲端是空的，嘗試把之前 Local Storage 的分類搬過來，或是建立預設
+                    migrateCategoriesToCloud();
+                } else {
+                    categories = [];
+                    snapshot.forEach(doc => categories.push(doc.data()));
+                    renderCategorySelect();
+                    if (!document.getElementById('category-modal').classList.contains('hidden')) {
+                        renderCategoryList();
+                    }
+                    refreshView();
+                }
+            }, (error) => {
+                 console.error("Cats sync error:", error);
+                 showToast("分類同步中斷", false);
+            });
+
+            // 監聽任務
+            onSnapshot(tasksRef, (snapshot) => {
+                if (snapshot.empty) {
+                    // 若雲端是空的，嘗試搬移舊資料
+                    migrateTasksToCloud();
+                }
+                tasks = [];
+                snapshot.forEach(doc => tasks.push(doc.data()));
+                refreshView();
+            }, (error) => {
+                 console.error("Tasks sync error:", error);
+                 showToast("任務同步中斷", false);
+            });
+        }
+
+        // --- 舊資料搬移邏輯 (從本機搬到雲端) ---
+        async function migrateCategoriesToCloud() {
+            const localCats = localStorage.getItem('daily_tasks_categories');
+            let toUpload = [];
+            if (localCats) {
+                 try {
+                     toUpload = JSON.parse(localCats);
+                     localStorage.removeItem('daily_tasks_categories');
+                 } catch(e){}
+            }
+            if (toUpload.length === 0) {
+                toUpload = [
+                    { id: 'cat_1', name: '視覺設計', colorClass: colorThemes.find(c => c.value === 'purple').class },
+                    { id: 'cat_2', name: '網頁開發', colorClass: colorThemes.find(c => c.value === 'blue').class },
+                    { id: 'cat_3', name: '專案溝通', colorClass: colorThemes.find(c => c.value === 'amber').class },
+                    { id: 'cat_4', name: '日常行政', colorClass: colorThemes.find(c => c.value === 'emerald').class }
+                ];
+            }
+            for (const c of toUpload) {
+                await setDoc(doc(db, 'categories', c.id), c);
+            }
+        }
+
+        async function migrateTasksToCloud() {
+            const localSaved = localStorage.getItem('daily_tasks_data_v2') || localStorage.getItem('daily_tasks_data');
+            if (localSaved) {
+                 try {
+                     const localTasks = JSON.parse(localSaved);
+                     if (localTasks.length > 0) {
+                         for (const t of localTasks) {
+                             if (!t.id) t.id = 'task_' + Math.random().toString(36).substr(2, 9);
+                             if (!t.date) t.date = getLocalISODate(new Date(t.timestamp || Date.now()));
+                             await setDoc(doc(db, 'tasks', t.id), t);
+                         }
+                         localStorage.removeItem('daily_tasks_data_v2');
+                         localStorage.removeItem('daily_tasks_data');
+                     }
+                 } catch(e) {}
+            }
+        }
+
+        // --- 視圖更新功能 ---
         function refreshView() {
             renderCalendar();
             updateUI();
         }
 
-        // --- 日曆功能 ---
         function changeMonth(offset) {
             displayDate.setMonth(displayDate.getMonth() + offset);
             renderCalendar();
@@ -352,7 +480,7 @@
         function selectDate(dateStr) {
             selectedDateStr = dateStr;
             updateUI();
-            renderCalendar(); // 更新選中狀態
+            renderCalendar();
         }
 
         function renderCalendar() {
@@ -367,18 +495,15 @@
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const todayStr = getLocalISODate(new Date());
 
-            // 填充上個月的空白
             for (let i = 0; i < firstDay; i++) {
                 grid.innerHTML += `<div class="p-2"></div>`;
             }
 
-            // 渲染當月天數
             for (let i = 1; i <= daysInMonth; i++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
                 const isSelected = dateStr === selectedDateStr;
                 const isToday = dateStr === todayStr;
                 
-                // 計算該日的任務狀況 (產生小點點)
                 const dayTasks = tasks.filter(t => t.date === dateStr);
                 const doneTasks = dayTasks.filter(t => t.status === 'done');
                 const hasTasks = dayTasks.length > 0;
@@ -409,9 +534,7 @@
             }
         }
 
-        // --- 看板與任務功能 ---
         function updateUI() {
-            // 更新右側日期標題
             const dateObj = new Date(selectedDateStr);
             const weekday = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
             const titleDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
@@ -420,7 +543,6 @@
             if (selectedDateStr === getLocalISODate(new Date())) titlePrefix = '✨ 今天 - ';
             document.getElementById('selected-date-title').innerHTML = `${titlePrefix}${titleDate} <span class="text-slate-400 text-lg font-normal ml-2">(星期${weekday})</span>`;
 
-            // 過濾出選定日期的任務
             const currentTasks = tasks.filter(t => t.date === selectedDateStr);
             
             const columns = {
@@ -432,7 +554,6 @@
             Object.values(columns).forEach(col => col.innerHTML = '');
             let counts = { todo: 0, inprogress: 0, done: 0 };
 
-            // 排序並渲染
             const sortedTasks = [...currentTasks].sort((a, b) => b.timestamp - a.timestamp);
             sortedTasks.forEach(task => {
                 if (columns[task.status]) {
@@ -441,12 +562,10 @@
                 }
             });
 
-            // 更新計數器
             document.getElementById('count-todo').textContent = counts.todo;
             document.getElementById('count-inprogress').textContent = counts.inprogress;
             document.getElementById('count-done').textContent = counts.done;
 
-            // 更新選定日期的進度條
             const totalTasks = currentTasks.length;
             const doneTasks = counts.done;
             const progressBar = document.getElementById('progress-bar');
@@ -466,7 +585,10 @@
             lucide.createIcons();
         }
 
-        function addTask() {
+        // --- 雲端 CRUD 功能 ---
+        async function addTask() {
+            if (!currentUser) return showToast('尚未連線到雲端', false);
+
             const input = document.getElementById('task-input');
             const descInput = document.getElementById('task-desc-input');
             const category = document.getElementById('category-input').value;
@@ -475,32 +597,50 @@
             
             if (text === '') { showToast('請輸入任務名稱！', false); return; }
 
-            tasks.push({
-                id: Math.random().toString(36).substr(2, 9),
+            const taskId = 'task_' + Math.random().toString(36).substr(2, 9);
+            const newTask = {
+                id: taskId,
                 text: text,
                 description: desc,
                 category: category,
                 status: 'todo',
-                date: selectedDateStr, // 綁定到當前選擇的日期
+                date: selectedDateStr,
                 timestamp: Date.now()
-            });
+            };
 
-            input.value = '';
-            if (descInput) descInput.value = '';
-            saveData();
-            showToast('已新增到 ' + selectedDateStr);
+            try {
+                // 上傳到 Firestore
+                await setDoc(doc(db, 'tasks', taskId), newTask);
+                input.value = '';
+                if (descInput) descInput.value = '';
+                showToast('已新增到雲端！');
+            } catch (e) {
+                console.error(e);
+                showToast('雲端儲存失敗', false);
+            }
         }
 
-        function deleteTask(id) {
-            tasks = tasks.filter(task => task.id !== id);
-            saveData();
+        async function deleteTask(id) {
+            if (!currentUser) return;
+            try {
+                await deleteDoc(doc(db, 'tasks', id));
+                showToast('已刪除');
+            } catch (e) {
+                showToast('刪除失敗', false);
+            }
         }
 
-        function updateTaskStatus(id, newStatus) {
-            const taskIndex = tasks.findIndex(task => task.id === id);
-            if (taskIndex !== -1 && tasks[taskIndex].status !== newStatus) {
-                tasks[taskIndex].status = newStatus;
-                saveData();
+        async function updateTaskStatus(id, newStatus) {
+            if (!currentUser) return;
+            const task = tasks.find(t => t.id === id);
+            if (task && task.status !== newStatus) {
+                try {
+                    task.status = newStatus; // 本地先更新(樂觀UI)
+                    updateUI(); 
+                    await setDoc(doc(db, 'tasks', id), task);
+                } catch (e) {
+                    showToast('狀態更新失敗', false);
+                }
             }
         }
 
@@ -521,7 +661,6 @@
                 </div>
             `;
             
-            // 處理內容換行與防範 XSS
             const descHtml = task.description ? `<p class="text-xs text-slate-500 mt-0.5 whitespace-pre-wrap line-clamp-3 bg-slate-50 p-2 rounded">${task.description.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : '';
 
             card.innerHTML = `
@@ -571,25 +710,7 @@
             });
         }
 
-        // --- 分類管理 (與舊版相同邏輯) ---
-        function loadCategories() {
-            const saved = localStorage.getItem(STORAGE_KEY_CATS);
-            if (saved) {
-                try { categories = JSON.parse(saved); } catch (e) { initDefaultCategories(); }
-            } else { initDefaultCategories(); }
-            renderCategorySelect();
-        }
-
-        function initDefaultCategories() {
-            categories = [
-                { id: 'cat_1', name: '視覺設計', colorClass: colorThemes.find(c => c.value === 'purple').class },
-                { id: 'cat_2', name: '網頁開發', colorClass: colorThemes.find(c => c.value === 'blue').class },
-                { id: 'cat_3', name: '專案溝通', colorClass: colorThemes.find(c => c.value === 'amber').class },
-                { id: 'cat_4', name: '日常行政', colorClass: colorThemes.find(c => c.value === 'emerald').class }
-            ];
-            localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(categories));
-        }
-
+        // --- 分類管理雲端版 ---
         function renderCategorySelect() {
             const select = document.getElementById('category-input');
             select.innerHTML = '';
@@ -598,6 +719,9 @@
                 opt.value = cat.name; opt.textContent = cat.name;
                 select.appendChild(opt);
             });
+            if(categories.length === 0) {
+                select.innerHTML = '<option>尚無分類</option>';
+            }
         }
 
         function openCategoryModal() {
@@ -642,26 +766,35 @@
             });
         }
 
-        function addNewCategory() {
+        async function addNewCategory() {
+            if (!currentUser) return;
             const name = document.getElementById('new-category-name').value.trim();
             if (!name) return showToast('請輸入分類名稱！', false);
             if (categories.some(c => c.name === name)) return showToast('此分類名稱已存在！', false);
             
-            categories.push({ id: 'cat_' + Math.random().toString(36).substr(2, 9), name: name, colorClass: selectedNewCategoryColor.class });
-            localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(categories));
-            renderCategorySelect(); renderCategoryList();
-            document.getElementById('new-category-name').value = '';
-            showToast('分類新增成功！'); updateUI();
+            const newCat = { 
+                id: 'cat_' + Math.random().toString(36).substr(2, 9), 
+                name: name, 
+                colorClass: selectedNewCategoryColor.class 
+            };
+            
+            try {
+                await setDoc(doc(db, 'categories', newCat.id), newCat);
+                document.getElementById('new-category-name').value = '';
+                showToast('分類已新增到雲端！'); 
+            } catch(e) { showToast('分類新增失敗', false); }
         }
 
-        function deleteCategory(id) {
+        async function deleteCategory(id) {
+            if (!currentUser) return;
             if (categories.length <= 1) return showToast('請至少保留一個分類！', false);
-            categories = categories.filter(c => c.id !== id);
-            localStorage.setItem(STORAGE_KEY_CATS, JSON.stringify(categories));
-            renderCategorySelect(); renderCategoryList(); updateUI(); showToast('分類已刪除');
+            try {
+                await deleteDoc(doc(db, 'categories', id));
+                showToast('分類已刪除');
+            } catch(e) { showToast('刪除失敗', false); }
         }
 
-        // --- 編輯任務功能 ---
+        // --- 編輯任務功能雲端版 ---
         let currentEditTaskId = null;
 
         function openEditModal(taskId) {
@@ -672,7 +805,6 @@
             document.getElementById('edit-task-title').value = task.text;
             document.getElementById('edit-task-desc').value = task.description || '';
             
-            // 準備分類選單
             const select = document.getElementById('edit-task-category');
             select.innerHTML = '';
             categories.forEach(cat => {
@@ -699,22 +831,24 @@
             }, 300);
         }
 
-        function saveEditedTask() {
-            if (!currentEditTaskId) return;
+        async function saveEditedTask() {
+            if (!currentEditTaskId || !currentUser) return;
             const title = document.getElementById('edit-task-title').value.trim();
             const desc = document.getElementById('edit-task-desc').value.trim();
             const category = document.getElementById('edit-task-category').value;
             
             if (title === '') { showToast('請輸入任務標題！', false); return; }
             
-            const taskIndex = tasks.findIndex(t => t.id === currentEditTaskId);
-            if (taskIndex !== -1) {
-                tasks[taskIndex].text = title;
-                tasks[taskIndex].description = desc;
-                tasks[taskIndex].category = category;
-                saveData();
-                closeEditModal();
-                showToast('任務已更新！');
+            const task = tasks.find(t => t.id === currentEditTaskId);
+            if (task) {
+                task.text = title;
+                task.description = desc;
+                task.category = category;
+                try {
+                    await setDoc(doc(db, 'tasks', task.id), task);
+                    closeEditModal();
+                    showToast('任務已更新至雲端！');
+                } catch(e) { showToast('更新失敗', false); }
             }
         }
 
