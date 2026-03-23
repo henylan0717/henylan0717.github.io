@@ -8,10 +8,12 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .task-card {
-            cursor: grab;
             transition: transform 0.1s ease, box-shadow 0.1s ease;
         }
-        .task-card:active {
+        .task-card.can-drag {
+            cursor: grab;
+        }
+        .task-card.can-drag:active {
             cursor: grabbing;
             transform: scale(0.98);
         }
@@ -30,12 +32,20 @@
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* 日曆網格樣式 */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 4px;
+        }
+        body.unlocked .admin-only-block {
+            display: block;
+        }
+        .admin-only-block {
+            display: none;
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
         }
     </style>
     <script>
@@ -62,851 +72,453 @@
                 <div id="sync-dot" class="absolute -top-1 -right-1 w-3 h-3 bg-slate-400 rounded-full border-2 border-white transition-colors duration-300"></div>
             </div>
             <div>
-                <h1 class="text-xl font-bold text-slate-800">漢光的工作看板</h1>
+                <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    漢光的工作看板
+                    <button id="lock-btn" class="text-slate-400 hover:text-brand-600 transition-colors p-1" title="點擊切換權限">
+                        <span id="lock-icon-container">
+                            <i data-lucide="lock" class="w-5 h-5"></i>
+                        </span>
+                    </button>
+                </h1>
                 <p id="sync-status-text" class="text-xs text-slate-500 font-medium">連線中...</p>
             </div>
         </div>
         
-        <button onclick="exportReport()" class="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors text-sm w-full sm:w-auto justify-center">
-            <i data-lucide="clipboard-copy" class="w-4 h-4"></i>
-            <span>匯出單日報表</span>
-        </button>
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+            <button id="export-btn" class="flex-1 sm:flex-none flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors text-sm justify-center">
+                <i data-lucide="clipboard-copy" class="w-4 h-4"></i>
+                <span>匯出單日報表</span>
+            </button>
+        </div>
     </header>
 
-    <!-- 主要內容區 (側邊日曆 + 右側看板) -->
+    <!-- 主要內容區 -->
     <main class="flex-1 overflow-auto p-4 sm:p-6 flex flex-col lg:flex-row gap-6">
         
-        <!-- 左側：日曆與數據 -->
         <aside class="w-full lg:w-80 shrink-0 flex flex-col gap-6">
-            <!-- 日曆模組 -->
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
                 <div class="flex justify-between items-center mb-4">
-                    <button onclick="changeMonth(-1)" class="p-1 hover:bg-slate-100 rounded text-slate-500">
+                    <button id="prev-month-btn" class="p-1 hover:bg-slate-100 rounded text-slate-500">
                         <i data-lucide="chevron-left" class="w-5 h-5"></i>
                     </button>
-                    <h2 id="calendar-month-year" class="font-bold text-slate-700">載入中...</h2>
-                    <button onclick="changeMonth(1)" class="p-1 hover:bg-slate-100 rounded text-slate-500">
+                    <h2 id="calendar-month-year" class="font-bold text-slate-700 text-sm italic">載入中...</h2>
+                    <button id="next-month-btn" class="p-1 hover:bg-slate-100 rounded text-slate-500">
                         <i data-lucide="chevron-right" class="w-5 h-5"></i>
                     </button>
                 </div>
-                
                 <div class="calendar-grid text-center text-xs font-medium text-slate-400 mb-2">
                     <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
                 </div>
-                
-                <div id="calendar-days" class="calendar-grid">
-                    <!-- 日曆天數由 JS 生成 -->
-                </div>
-                
+                <div id="calendar-days" class="calendar-grid"></div>
                 <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
-                    <button onclick="goToToday()" class="text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 px-3 py-1.5 rounded">
-                        回到今天
-                    </button>
-                    <div class="flex items-center gap-2 text-xs text-slate-500">
-                        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span> 待辦</span>
-                        <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span> 完成</span>
-                    </div>
+                    <button id="today-btn" class="text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 px-3 py-1.5 rounded">回到今天</button>
                 </div>
             </div>
 
-            <!-- 選定日期的進度追蹤 -->
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
                 <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
-                    <i data-lucide="pie-chart" class="w-4 h-4 text-brand-500"></i> 單日任務進度
+                    <i data-lucide="pie-chart" class="w-4 h-4 text-brand-500"></i> 進度
                 </h3>
                 <div class="flex justify-between text-2xl font-bold mb-1">
-                    <span id="progress-text" class="text-brand-600">0%</span>
-                    <span id="task-count-text" class="text-slate-400 text-sm font-medium self-end mb-1">0 / 0 項</span>
+                    <span id="progress-text" class="text-brand-600 text-lg">0%</span>
+                    <span id="task-count-text" class="text-slate-400 text-sm font-medium self-end mb-1">0 / 0</span>
                 </div>
-                <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                    <div id="progress-bar" class="bg-brand-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div id="progress-bar" class="bg-brand-500 h-full transition-all duration-500" style="width: 0%"></div>
                 </div>
             </div>
         </aside>
 
-        <!-- 右側：任務看板 -->
         <section class="flex-1 flex flex-col min-w-0">
-            
-            <!-- 日期標題與輸入區 -->
             <div class="mb-6">
-                <h2 id="selected-date-title" class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <!-- 日期標題由 JS 生成 -->
-                </h2>
-                
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col xl:flex-row gap-3">
-                    <div class="flex-1 flex flex-col gap-2">
-                        <div class="relative flex-1">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i data-lucide="plus-circle" class="w-5 h-5 text-slate-400"></i>
-                            </div>
-                            <input type="text" id="task-input" placeholder="這天需要做些什麼？ (按 Enter 快速新增)" 
-                                   class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-colors">
+                <h2 id="selected-date-title" class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"></h2>
+                <div class="admin-only-block bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-4">
+                    <div class="flex flex-col xl:flex-row gap-3">
+                        <div class="flex-1 flex flex-col gap-2">
+                            <input type="text" id="task-input" placeholder="這天要做什麼？ (Enter)" class="w-full pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
+                            <textarea id="task-desc-input" placeholder="備註 (選填)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none resize-none h-12"></textarea>
                         </div>
-                        <textarea id="task-desc-input" placeholder="任務詳細內容或備註 (選填)..." class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all resize-none h-10 focus:h-20 text-sm no-scrollbar"></textarea>
-                    </div>
-                    
-                    <div class="flex gap-3 h-[46px] mt-1 xl:mt-0 shrink-0">
-                        <select id="category-input" class="px-4 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 font-medium text-slate-700 cursor-pointer">
-                            <option>載入中...</option>
-                        </select>
-                        <button onclick="openCategoryModal()" class="px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 flex items-center justify-center" title="管理工作分類">
-                            <i data-lucide="settings-2" class="w-5 h-5"></i>
-                        </button>
-                        <button onclick="addTask()" class="bg-brand-500 hover:bg-brand-600 text-white px-6 rounded-lg font-medium transition-colors shadow-sm shadow-brand-500/30 whitespace-nowrap">
-                            新增任務
-                        </button>
+                        <div class="flex gap-2 shrink-0">
+                            <select id="category-input" class="px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm"></select>
+                            <button id="add-task-btn" class="bg-brand-500 text-white px-4 rounded-lg font-medium text-sm">新增</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 看板區 -->
             <div class="flex flex-col md:flex-row gap-4 lg:gap-6 flex-1 min-h-0">
-                <!-- 待辦 (To Do) -->
-                <div class="flex-1 flex flex-col bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
-                    <div class="p-3 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center shrink-0">
-                        <h3 class="font-bold text-slate-700 flex items-center gap-2 text-sm">
-                            <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span> 待辦 (To Do)
-                        </h3>
-                        <span id="count-todo" class="bg-slate-200 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
-                    </div>
-                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone relative" id="todo" data-status="todo"></div>
+                <div class="flex-1 flex flex-col bg-slate-100 rounded-xl overflow-hidden">
+                    <div class="p-3 border-b flex justify-between items-center"><h3 class="font-bold text-slate-700 text-xs">待辦</h3><span id="count-todo" class="text-xs">0</span></div>
+                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone" id="todo" data-status="todo"></div>
                 </div>
-
-                <!-- 進行中 (In Progress) -->
-                <div class="flex-1 flex flex-col bg-blue-50 rounded-xl overflow-hidden border border-blue-100">
-                    <div class="p-3 border-b border-blue-100 bg-white/50 flex justify-between items-center shrink-0">
-                        <h3 class="font-bold text-blue-800 flex items-center gap-2 text-sm">
-                            <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> 進行中 (Doing)
-                        </h3>
-                        <span id="count-inprogress" class="bg-blue-200 text-blue-800 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
-                    </div>
-                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone relative" id="inprogress" data-status="inprogress"></div>
+                <div class="flex-1 flex flex-col bg-blue-50 rounded-xl overflow-hidden">
+                    <div class="p-3 border-b flex justify-between items-center"><h3 class="font-bold text-blue-800 text-xs">進行中</h3><span id="count-inprogress" class="text-xs">0</span></div>
+                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone" id="inprogress" data-status="inprogress"></div>
                 </div>
-
-                <!-- 已完成 (Done) -->
-                <div class="flex-1 flex flex-col bg-brand-50 rounded-xl overflow-hidden border border-brand-100">
-                    <div class="p-3 border-b border-brand-100 bg-white/50 flex justify-between items-center shrink-0">
-                        <h3 class="font-bold text-brand-800 flex items-center gap-2 text-sm">
-                            <span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span> 已完成 (Done)
-                        </h3>
-                        <span id="count-done" class="bg-brand-200 text-brand-800 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
-                    </div>
-                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone relative" id="done" data-status="done"></div>
+                <div class="flex-1 flex flex-col bg-brand-50 rounded-xl overflow-hidden">
+                    <div class="p-3 border-b flex justify-between items-center"><h3 class="font-bold text-brand-800 text-xs">已完成</h3><span id="count-done" class="text-xs">0</span></div>
+                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone" id="done" data-status="done"></div>
                 </div>
             </div>
-            
         </section>
     </main>
 
-    <!-- 分類管理 Modal -->
-    <div id="category-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 opacity-0 transition-opacity duration-300">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden flex flex-col transform scale-95 transition-transform duration-300" id="category-modal-content">
-            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 class="font-bold text-slate-800 flex items-center gap-2">
-                    <i data-lucide="tags" class="w-5 h-5 text-brand-500"></i> 管理工作分類
-                </h3>
-                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div class="p-6 flex-1 overflow-y-auto max-h-[50vh]">
-                <ul id="category-list" class="flex flex-col gap-2"></ul>
-            </div>
-            <div class="p-6 border-t border-slate-100 bg-slate-50">
-                <h4 class="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                    <i data-lucide="plus" class="w-4 h-4"></i> 新增分類
-                </h4>
-                <div class="flex flex-col gap-3">
-                    <input type="text" id="new-category-name" placeholder="輸入分類名稱" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
-                    <div class="flex gap-3 items-center">
-                        <span class="text-xs font-medium text-slate-500">選擇顏色：</span>
-                        <div id="color-picker" class="flex gap-2 flex-wrap"></div>
-                    </div>
-                    <button onclick="addNewCategory()" class="w-full mt-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-                        新增分類
-                    </button>
-                </div>
+    <!-- 密碼輸入對話框 -->
+    <div id="pwd-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-backdrop">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden p-6 transform transition-all">
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i data-lucide="shield-check" class="text-brand-500"></i> 權限驗證
+            </h3>
+            <p class="text-sm text-slate-500 mb-4">請輸入管理金鑰以取得編輯權限。</p>
+            <input type="password" id="pwd-input" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none mb-4" placeholder="管理密碼">
+            <div class="flex gap-3">
+                <button id="pwd-cancel" class="flex-1 py-2 text-sm font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">取消</button>
+                <button id="pwd-confirm" class="flex-1 py-2 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm">確認</button>
             </div>
         </div>
     </div>
 
-    <!-- 編輯任務 Modal -->
-    <div id="edit-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 opacity-0 transition-opacity duration-300">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 overflow-hidden flex flex-col transform scale-95 transition-transform duration-300" id="edit-modal-content">
-            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 class="font-bold text-slate-800 flex items-center gap-2">
-                    <i data-lucide="edit" class="w-5 h-5 text-brand-500"></i> 編輯任務
-                </h3>
-                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            <div class="p-6 flex flex-col gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">任務標題</label>
-                    <input type="text" id="edit-task-title" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">工作分類</label>
-                    <select id="edit-task-category" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer">
-                        <!-- 動態生成 -->
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">詳細內容</label>
-                    <textarea id="edit-task-desc" rows="4" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
-                </div>
-            </div>
-            <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                <button onclick="closeEditModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-lg transition-colors">取消</button>
-                <button onclick="saveEditedTask()" class="px-4 py-2 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm">儲存變更</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 訊息提示 -->
-    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50">
-        <i data-lucide="check-circle-2" class="text-brand-400"></i>
+    <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50 text-sm">
+        <span id="toast-icon-container"></span>
         <span id="toast-message">訊息</span>
     </div>
 
-    <!-- 引入 Firebase 作為雲端資料庫 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- ⚠️ 部署到 GitHub Pages 前，請在這裡填入你自己的 Firebase 設定 ⚠️ ---
-  const firebaseConfig = {
-    apiKey: "AIzaSyC5A4ypI6fKWsRzI-BTsl4ANVXBMKs1b6c",
-    authDomain: "henryjob-dedc8.firebaseapp.com",
-    projectId: "henryjob-dedc8",
-    storageBucket: "henryjob-dedc8.firebasestorage.app",
-    messagingSenderId: "1011435018124",
-    appId: "1:1011435018124:web:b58d955d5a1b5d30e2a8a9",
-    measurementId: "G-J43KCXFF1R"
-  };
-        // ----------------------------------------------------------------
+        // --- 1. Firebase 設定 ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyC5A4ypI6fKWsRzI-BTsl4ANVXBMKs1b6c",
+            authDomain: "henryjob-dedc8.firebaseapp.com",
+            projectId: "henryjob-dedc8",
+            storageBucket: "henryjob-dedc8.firebasestorage.app",
+            messagingSenderId: "1011435018124",
+            appId: "1:1011435018124:web:b58d955d5a1b5d30e2a8a9",
+            measurementId: "G-J43KCXFF1R"
+        };
+        const ADMIN_KEY = "1234"; 
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 狀態管理
+        // --- 2. 狀態管理 ---
         let tasks = [];
         let categories = [];
-        let currentUser = null;
-        let isOnline = false;
-        
+        let isUnlocked = false; 
         let displayDate = new Date();
-        let selectedDateStr = getLocalISODate(new Date());
+        let selectedDateStr = new Date().toISOString().split('T')[0];
 
-        const colorThemes = [
-            { value: 'purple', class: 'bg-purple-100 text-purple-700 border-purple-200', dotClass: 'bg-purple-500 ring-purple-500' },
-            { value: 'blue', class: 'bg-blue-100 text-blue-700 border-blue-200', dotClass: 'bg-blue-500 ring-blue-500' },
-            { value: 'emerald', class: 'bg-emerald-100 text-emerald-700 border-emerald-200', dotClass: 'bg-emerald-500 ring-emerald-500' },
-            { value: 'amber', class: 'bg-amber-100 text-amber-700 border-amber-200', dotClass: 'bg-amber-500 ring-amber-500' },
-            { value: 'rose', class: 'bg-rose-100 text-rose-700 border-rose-200', dotClass: 'bg-rose-500 ring-rose-500' },
-            { value: 'slate', class: 'bg-slate-100 text-slate-700 border-slate-200', dotClass: 'bg-slate-500 ring-slate-500' }
-        ];
-        let selectedNewCategoryColor = colorThemes[0];
+        // --- 3. 核心工具函數 ---
 
-        // 將重要函數綁定到 window 讓 HTML onclick 可以呼叫
-        window.changeMonth = changeMonth;
-        window.goToToday = goToToday;
-        window.addTask = addTask;
-        window.deleteTask = deleteTask;
-        window.updateTaskStatus = updateTaskStatus;
-        window.openCategoryModal = openCategoryModal;
-        window.closeCategoryModal = closeCategoryModal;
-        window.addNewCategory = addNewCategory;
-        window.deleteCategory = deleteCategory;
-        window.openEditModal = openEditModal;
-        window.closeEditModal = closeEditModal;
-        window.saveEditedTask = saveEditedTask;
-        window.exportReport = exportReport;
-
-        function getLocalISODate(dateObj) {
-            const tzOffset = dateObj.getTimezoneOffset() * 60000;
-            return new Date(dateObj - tzOffset).toISOString().split('T')[0];
-        }
-
-        // 啟動應用程式
-        async function init() {
-            lucide.createIcons();
-            
-            document.getElementById('task-input').addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') addTask();
-            });
-            setupDragAndDrop();
-
-            // 1. 初始化 Firebase 登入 (使用標準的匿名登入)
+        const copyToClipboard = (text) => {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
             try {
-                await signInAnonymously(auth);
-            } catch (e) {
-                console.error("Auth error", e);
-                showToast("無法連接雲端，請檢查 Firebase 設定", false);
+                const successful = document.execCommand('copy');
+                if (successful) showToast("已成功複製到剪貼簿");
+                else showToast("複製失敗", false);
+            } catch (err) {
+                showToast("瀏覽器不支援複製功能", false);
             }
+            document.body.removeChild(textArea);
+        };
 
-            // 2. 監聽登入狀態並開啟同步
-            onAuthStateChanged(auth, (user) => {
-                currentUser = user;
-                if (user) {
-                    setOnlineStatus(true);
-                    setupRealtimeListeners();
+        const showToast = (msg, isSuccess = true) => {
+            const t = document.getElementById('toast');
+            if(!t) return;
+            document.getElementById('toast-message').textContent = msg;
+            const container = document.getElementById('toast-icon-container');
+            if(container) {
+                container.innerHTML = `<i data-lucide="${isSuccess ? 'check-circle-2' : 'x-circle'}" class="${isSuccess ? 'text-brand-400' : 'text-red-400'}"></i>`;
+                if(window.lucide) lucide.createIcons();
+            }
+            t.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000);
+        };
+
+        const updateLockUI = () => {
+            const container = document.getElementById('lock-icon-container');
+            const btn = document.getElementById('lock-btn');
+            if (container && btn) {
+                const iconName = isUnlocked ? 'unlock' : 'lock';
+                container.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5"></i>`;
+                if (isUnlocked) {
+                    btn.classList.add('text-brand-600');
+                    document.body.classList.add('unlocked');
+                    btn.title = "管理員模式：已解鎖";
                 } else {
-                    setOnlineStatus(false);
+                    btn.classList.remove('text-brand-600');
+                    document.body.classList.remove('unlocked');
+                    btn.title = "點擊輸入金鑰以編輯";
                 }
-            });
-            
-            refreshView(); // 繪製初始無資料的框架
-        }
-
-        function setOnlineStatus(online) {
-            isOnline = online;
-            const dot = document.getElementById('sync-dot');
-            const text = document.getElementById('sync-status-text');
-            if (online) {
-                dot.classList.replace('bg-slate-400', 'bg-green-500');
-                text.textContent = "已連線同步";
-                text.classList.replace('text-slate-500', 'text-green-600');
-            } else {
-                dot.classList.replace('bg-green-500', 'bg-slate-400');
-                text.textContent = "未連線";
-                text.classList.replace('text-green-600', 'text-slate-500');
+                if(window.lucide) lucide.createIcons();
             }
-        }
+        };
 
-        // 設置 Firestore 即時監聽
-        function setupRealtimeListeners() {
-            if (!currentUser) return;
-
-            // 使用標準簡潔的集合路徑
-            const tasksRef = collection(db, 'tasks');
-            const catsRef = collection(db, 'categories');
-
-            // 監聽分類
-            onSnapshot(catsRef, (snapshot) => {
-                if (snapshot.empty) {
-                    // 若雲端是空的，嘗試把之前 Local Storage 的分類搬過來，或是建立預設
-                    migrateCategoriesToCloud();
-                } else {
-                    categories = [];
-                    snapshot.forEach(doc => categories.push(doc.data()));
-                    renderCategorySelect();
-                    if (!document.getElementById('category-modal').classList.contains('hidden')) {
-                        renderCategoryList();
-                    }
-                    refreshView();
-                }
-            }, (error) => {
-                 console.error("Cats sync error:", error);
-                 showToast("分類同步中斷", false);
-            });
-
-            // 監聽任務
-            onSnapshot(tasksRef, (snapshot) => {
-                if (snapshot.empty) {
-                    // 若雲端是空的，嘗試搬移舊資料
-                    migrateTasksToCloud();
-                }
-                tasks = [];
-                snapshot.forEach(doc => tasks.push(doc.data()));
-                refreshView();
-            }, (error) => {
-                 console.error("Tasks sync error:", error);
-                 showToast("任務同步中斷", false);
-            });
-        }
-
-        // --- 舊資料搬移邏輯 (從本機搬到雲端) ---
-        async function migrateCategoriesToCloud() {
-            const localCats = localStorage.getItem('daily_tasks_categories');
-            let toUpload = [];
-            if (localCats) {
-                 try {
-                     toUpload = JSON.parse(localCats);
-                     localStorage.removeItem('daily_tasks_categories');
-                 } catch(e){}
-            }
-            if (toUpload.length === 0) {
-                toUpload = [
-                    { id: 'cat_1', name: '視覺設計', colorClass: colorThemes.find(c => c.value === 'purple').class },
-                    { id: 'cat_2', name: '網頁開發', colorClass: colorThemes.find(c => c.value === 'blue').class },
-                    { id: 'cat_3', name: '專案溝通', colorClass: colorThemes.find(c => c.value === 'amber').class },
-                    { id: 'cat_4', name: '日常行政', colorClass: colorThemes.find(c => c.value === 'emerald').class }
-                ];
-            }
-            for (const c of toUpload) {
-                await setDoc(doc(db, 'categories', c.id), c);
-            }
-        }
-
-        async function migrateTasksToCloud() {
-            const localSaved = localStorage.getItem('daily_tasks_data_v2') || localStorage.getItem('daily_tasks_data');
-            if (localSaved) {
-                 try {
-                     const localTasks = JSON.parse(localSaved);
-                     if (localTasks.length > 0) {
-                         for (const t of localTasks) {
-                             if (!t.id) t.id = 'task_' + Math.random().toString(36).substr(2, 9);
-                             if (!t.date) t.date = getLocalISODate(new Date(t.timestamp || Date.now()));
-                             await setDoc(doc(db, 'tasks', t.id), t);
-                         }
-                         localStorage.removeItem('daily_tasks_data_v2');
-                         localStorage.removeItem('daily_tasks_data');
-                     }
-                 } catch(e) {}
-            }
-        }
-
-        // --- 視圖更新功能 ---
-        function refreshView() {
+        const refreshView = () => {
             renderCalendar();
             updateUI();
-        }
+        };
 
-        function changeMonth(offset) {
-            displayDate.setMonth(displayDate.getMonth() + offset);
-            renderCalendar();
-        }
+        // --- 4. 資料庫操作 ---
 
-        function goToToday() {
-            displayDate = new Date();
-            selectedDateStr = getLocalISODate(displayDate);
-            refreshView();
-        }
+        const addTask = async () => {
+            if (!isUnlocked) return showToast("無編輯權限", false);
+            const input = document.getElementById('task-input');
+            const txt = input.value.trim();
+            if(!txt) return;
+            const id = 'task_' + Date.now();
+            try {
+                await setDoc(doc(db, 'tasks', id), { 
+                    id, 
+                    text: txt, 
+                    description: document.getElementById('task-desc-input').value, 
+                    category: document.getElementById('category-input').value || '一般', 
+                    status: 'todo', 
+                    date: selectedDateStr, 
+                    timestamp: Date.now() 
+                });
+                input.value = ''; 
+                document.getElementById('task-desc-input').value = '';
+                showToast("任務已新增");
+            } catch(e) { showToast("儲存失敗", false); }
+        };
 
-        function selectDate(dateStr) {
-            selectedDateStr = dateStr;
-            updateUI();
-            renderCalendar();
-        }
+        const deleteTask = async (id) => {
+            if (!isUnlocked) return;
+            try { await deleteDoc(doc(db, 'tasks', id)); showToast("任務已刪除"); } 
+            catch(e) { showToast("刪除失敗", false); }
+        };
+
+        const updateTaskStatus = async (id, s) => {
+            if (!isUnlocked) return;
+            const t = tasks.find(x => x.id === id);
+            if(t) await setDoc(doc(db, 'tasks', id), {...t, status: s});
+        };
+
+        // --- 5. 畫面渲染邏輯 ---
 
         function renderCalendar() {
             const grid = document.getElementById('calendar-days');
-            grid.innerHTML = '';
+            const monthYearEl = document.getElementById('calendar-month-year');
+            if (!grid || !monthYearEl) return;
             
+            grid.innerHTML = '';
             const year = displayDate.getFullYear();
             const month = displayDate.getMonth();
-            document.getElementById('calendar-month-year').textContent = `${year}年 ${month + 1}月`;
+            monthYearEl.textContent = `${year}年 ${month + 1}月`;
             
             const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const todayStr = getLocalISODate(new Date());
-
-            for (let i = 0; i < firstDay; i++) {
-                grid.innerHTML += `<div class="p-2"></div>`;
-            }
-
-            for (let i = 1; i <= daysInMonth; i++) {
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            
+            for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div></div>`;
+            
+            for (let i = 1; i <= totalDays; i++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                const isSelected = dateStr === selectedDateStr;
-                const isToday = dateStr === todayStr;
-                
+                const isActive = dateStr === selectedDateStr;
                 const dayTasks = tasks.filter(t => t.date === dateStr);
-                const doneTasks = dayTasks.filter(t => t.status === 'done');
-                const hasTasks = dayTasks.length > 0;
-                const allDone = hasTasks && (doneTasks.length === dayTasks.length);
-
-                let btnClass = 'p-1 cursor-pointer flex flex-col items-center justify-center rounded-lg transition-all min-h-[44px] hover:bg-slate-100 ';
-                let textClass = 'text-slate-700 font-medium text-sm ';
+                const hasTask = dayTasks.length > 0;
+                const isDone = hasTask && dayTasks.every(t => t.status === 'done');
                 
-                if (isSelected) {
-                    btnClass = 'p-1 cursor-pointer flex flex-col items-center justify-center rounded-lg transition-all min-h-[44px] bg-brand-500 shadow-md shadow-brand-500/30 ';
-                    textClass = 'text-white font-bold text-sm ';
-                } else if (isToday) {
-                    btnClass += 'bg-brand-50 ring-1 ring-inset ring-brand-200 ';
-                    textClass = 'text-brand-700 font-bold text-sm ';
-                }
-
-                let dotHtml = '';
-                if (hasTasks) {
-                    const dotColor = isSelected ? 'bg-white' : (allDone ? 'bg-brand-500' : 'bg-slate-300');
-                    dotHtml = `<div class="w-1.5 h-1.5 rounded-full mt-1 ${dotColor}"></div>`;
-                }
-
                 const cell = document.createElement('div');
-                cell.className = btnClass;
-                cell.onclick = () => selectDate(dateStr);
-                cell.innerHTML = `<span class="${textClass}">${i}</span>${dotHtml}`;
+                cell.className = `p-1 cursor-pointer flex flex-col items-center justify-center rounded-lg min-h-[40px] transition-colors ${isActive ? 'bg-brand-500 text-white shadow-sm' : 'hover:bg-slate-100'}`;
+                cell.onclick = () => { selectedDateStr = dateStr; refreshView(); };
+                cell.innerHTML = `
+                    <span class="text-xs font-medium">${i}</span>
+                    ${hasTask ? `<div class="w-1 h-1 rounded-full mt-0.5 ${isActive ? 'bg-white' : (isDone ? 'bg-brand-500' : 'bg-slate-300')}"></div>` : ''}
+                `;
                 grid.appendChild(cell);
             }
         }
 
         function updateUI() {
-            const dateObj = new Date(selectedDateStr);
-            const weekday = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
-            const titleDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
+            const title = document.getElementById('selected-date-title');
+            if(title) title.textContent = selectedDateStr;
             
-            let titlePrefix = '';
-            if (selectedDateStr === getLocalISODate(new Date())) titlePrefix = '✨ 今天 - ';
-            document.getElementById('selected-date-title').innerHTML = `${titlePrefix}${titleDate} <span class="text-slate-400 text-lg font-normal ml-2">(星期${weekday})</span>`;
-
             const currentTasks = tasks.filter(t => t.date === selectedDateStr);
+            const cols = { todo: document.getElementById('todo'), inprogress: document.getElementById('inprogress'), done: document.getElementById('done') };
             
-            const columns = {
-                todo: document.getElementById('todo'),
-                inprogress: document.getElementById('inprogress'),
-                done: document.getElementById('done')
-            };
-
-            Object.values(columns).forEach(col => col.innerHTML = '');
+            Object.values(cols).forEach(c => { if(c) c.innerHTML = ''; });
             let counts = { todo: 0, inprogress: 0, done: 0 };
-
-            const sortedTasks = [...currentTasks].sort((a, b) => b.timestamp - a.timestamp);
-            sortedTasks.forEach(task => {
-                if (columns[task.status]) {
-                    counts[task.status]++;
-                    columns[task.status].appendChild(createTaskElement(task));
+            
+            currentTasks.sort((a,b) => b.timestamp - a.timestamp).forEach(t => {
+                if(cols[t.status]) {
+                    counts[t.status]++;
+                    cols[t.status].appendChild(createTaskCard(t));
                 }
             });
-
-            document.getElementById('count-todo').textContent = counts.todo;
-            document.getElementById('count-inprogress').textContent = counts.inprogress;
-            document.getElementById('count-done').textContent = counts.done;
-
-            const totalTasks = currentTasks.length;
-            const doneTasks = counts.done;
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
-            const taskCountText = document.getElementById('task-count-text');
             
-            taskCountText.textContent = `${doneTasks} / ${totalTasks} 項`;
-            if (totalTasks === 0) {
-                progressBar.style.width = '0%';
-                progressText.textContent = '0%';
-            } else {
-                const percentage = Math.round((doneTasks / totalTasks) * 100);
-                progressBar.style.width = percentage + '%';
-                progressText.textContent = percentage + '%';
-            }
-
-            lucide.createIcons();
-        }
-
-        // --- 雲端 CRUD 功能 ---
-        async function addTask() {
-            if (!currentUser) return showToast('尚未連線到雲端', false);
-
-            const input = document.getElementById('task-input');
-            const descInput = document.getElementById('task-desc-input');
-            const category = document.getElementById('category-input').value;
-            const text = input.value.trim();
-            const desc = descInput ? descInput.value.trim() : '';
+            ['todo', 'inprogress', 'done'].forEach(s => {
+                const el = document.getElementById('count-' + s);
+                if(el) el.textContent = counts[s];
+            });
             
-            if (text === '') { showToast('請輸入任務名稱！', false); return; }
-
-            const taskId = 'task_' + Math.random().toString(36).substr(2, 9);
-            const newTask = {
-                id: taskId,
-                text: text,
-                description: desc,
-                category: category,
-                status: 'todo',
-                date: selectedDateStr,
-                timestamp: Date.now()
-            };
-
-            try {
-                // 上傳到 Firestore
-                await setDoc(doc(db, 'tasks', taskId), newTask);
-                input.value = '';
-                if (descInput) descInput.value = '';
-                showToast('已新增到雲端！');
-            } catch (e) {
-                console.error(e);
-                showToast('雲端儲存失敗', false);
-            }
+            const total = currentTasks.length;
+            const pct = total === 0 ? 0 : Math.round((counts.done / total) * 100);
+            const pb = document.getElementById('progress-bar');
+            const pt = document.getElementById('progress-text');
+            const tct = document.getElementById('task-count-text');
+            if(pb) pb.style.width = pct + '%';
+            if(pt) pt.textContent = pct + '%';
+            if(tct) tct.textContent = `${counts.done} / ${total}`;
+            
+            if(window.lucide) lucide.createIcons();
         }
 
-        async function deleteTask(id) {
-            if (!currentUser) return;
-            try {
-                await deleteDoc(doc(db, 'tasks', id));
-                showToast('已刪除');
-            } catch (e) {
-                showToast('刪除失敗', false);
-            }
-        }
-
-        async function updateTaskStatus(id, newStatus) {
-            if (!currentUser) return;
-            const task = tasks.find(t => t.id === id);
-            if (task && task.status !== newStatus) {
-                try {
-                    task.status = newStatus; // 本地先更新(樂觀UI)
-                    updateUI(); 
-                    await setDoc(doc(db, 'tasks', id), task);
-                } catch (e) {
-                    showToast('狀態更新失敗', false);
-                }
-            }
-        }
-
-        function createTaskElement(task) {
+        function createTaskCard(t) {
             const card = document.createElement('div');
-            card.className = 'task-card bg-white p-3 rounded-lg shadow-sm border border-slate-200 mb-2.5 flex flex-col gap-2 group relative';
-            card.draggable = true;
-            card.dataset.id = task.id;
-
-            const catInfo = categories.find(c => c.name === task.category);
-            const colorClass = catInfo ? catInfo.colorClass : 'bg-slate-100 text-slate-700 border-slate-200';
-
-            const statusButtons = `
-                <div class="flex gap-1 mt-1 sm:hidden border-t pt-2 border-slate-100">
-                    ${task.status !== 'todo' ? `<button onclick="updateTaskStatus('${task.id}', 'todo')" class="flex-1 text-xs py-1 rounded bg-slate-100 text-slate-600">待辦</button>` : ''}
-                    ${task.status !== 'inprogress' ? `<button onclick="updateTaskStatus('${task.id}', 'inprogress')" class="flex-1 text-xs py-1 rounded bg-blue-50 text-blue-600">進行</button>` : ''}
-                    ${task.status !== 'done' ? `<button onclick="updateTaskStatus('${task.id}', 'done')" class="flex-1 text-xs py-1 rounded bg-brand-50 text-brand-600">完成</button>` : ''}
+            card.className = `task-card bg-white p-3 rounded-lg shadow-sm border border-slate-100 mb-2 group relative ${isUnlocked ? 'can-drag' : ''}`;
+            
+            if(isUnlocked) {
+                card.draggable = true;
+                card.addEventListener('dragstart', (e) => { e.dataTransfer.setData('tid', t.id); card.classList.add('opacity-40'); });
+                card.addEventListener('dragend', () => card.classList.remove('opacity-40'));
+            }
+            
+            const btnId = `del_btn_${t.id.replace(/\W/g, '')}`;
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-1">
+                    <span class="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-bold">${t.category}</span>
+                    ${isUnlocked ? `<button id="${btnId}" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
                 </div>
+                <p class="text-sm font-medium ${t.status === 'done' ? 'line-through text-slate-400' : ''}">${t.text}</p>
+                ${t.description ? `<p class="text-[10px] text-slate-400 mt-1 bg-slate-50 p-1.5 rounded truncate">${t.description}</p>` : ''}
             `;
             
-            const descHtml = task.description ? `<p class="text-xs text-slate-500 mt-0.5 whitespace-pre-wrap line-clamp-3 bg-slate-50 p-2 rounded">${task.description.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : '';
-
-            card.innerHTML = `
-                <div class="flex justify-between items-start gap-2">
-                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded border ${colorClass}">${task.category}</span>
-                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 sm:opacity-100 transition-opacity">
-                        <button onclick="openEditModal('${task.id}')" class="text-slate-400 hover:text-blue-500 p-0.5" title="編輯任務">
-                            <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
-                        </button>
-                        <button onclick="deleteTask('${task.id}')" class="text-slate-400 hover:text-red-500 p-0.5" title="刪除任務">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-                </div>
-                <p class="text-sm text-slate-700 font-medium leading-snug break-words ${task.status === 'done' ? 'line-through text-slate-400' : ''}">${task.text}</p>
-                ${descHtml}
-                ${statusButtons}
-            `;
-
-            card.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', task.id);
-                e.dataTransfer.effectAllowed = 'move';
-                setTimeout(() => card.classList.add('dragging'), 0);
-            });
-
-            card.addEventListener('dragend', () => {
-                card.classList.remove('dragging');
-                document.querySelectorAll('.column-drop-zone').forEach(zone => zone.classList.remove('drag-over'));
-            });
-
+            if(isUnlocked) {
+                setTimeout(() => {
+                    const btn = document.getElementById(btnId);
+                    if(btn) btn.onclick = (e) => { e.stopPropagation(); deleteTask(t.id); };
+                }, 0);
+            }
             return card;
         }
 
-        function setupDragAndDrop() {
-            document.querySelectorAll('.column-drop-zone').forEach(zone => {
-                zone.addEventListener('dragover', e => {
-                    e.preventDefault();
-                    zone.classList.add('drag-over');
-                });
-                zone.addEventListener('dragleave', e => zone.classList.remove('drag-over'));
-                zone.addEventListener('drop', e => {
-                    e.preventDefault();
-                    zone.classList.remove('drag-over');
-                    const taskId = e.dataTransfer.getData('text/plain');
-                    if (taskId && zone.dataset.status) updateTaskStatus(taskId, zone.dataset.status);
-                });
-            });
-        }
+        // --- 6. 事件監聽與權限對話框 ---
 
-        // --- 分類管理雲端版 ---
-        function renderCategorySelect() {
-            const select = document.getElementById('category-input');
-            select.innerHTML = '';
-            categories.forEach(cat => {
-                const opt = document.createElement('option');
-                opt.value = cat.name; opt.textContent = cat.name;
-                select.appendChild(opt);
-            });
-            if(categories.length === 0) {
-                select.innerHTML = '<option>尚無分類</option>';
-            }
-        }
+        function setupEventListeners() {
+            const pwdModal = document.getElementById('pwd-modal');
+            const pwdInput = document.getElementById('pwd-input');
+            const lockBtn = document.getElementById('lock-btn');
 
-        function openCategoryModal() {
-            renderCategoryList(); renderColorPicker();
-            const modal = document.getElementById('category-modal');
-            const content = document.getElementById('category-modal-content');
-            modal.classList.remove('hidden'); void modal.offsetWidth;
-            modal.classList.remove('opacity-0'); content.classList.remove('scale-95');
-            lucide.createIcons();
-        }
-
-        function closeCategoryModal() {
-            const modal = document.getElementById('category-modal');
-            const content = document.getElementById('category-modal-content');
-            modal.classList.add('opacity-0'); content.classList.add('scale-95');
-            setTimeout(() => modal.classList.add('hidden'), 300);
-        }
-
-        function renderCategoryList() {
-            const list = document.getElementById('category-list');
-            list.innerHTML = '';
-            categories.forEach(cat => {
-                list.innerHTML += `
-                    <li class="flex justify-between items-center p-3 rounded-lg border border-slate-200 bg-white shadow-sm">
-                        <span class="text-xs font-semibold px-2.5 py-1.5 rounded-md border ${cat.colorClass}">${cat.name}</span>
-                        <button onclick="deleteCategory('${cat.id}')" class="text-slate-400 hover:text-red-500 p-1.5 transition-colors rounded-md hover:bg-red-50"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                    </li>`;
-            });
-            lucide.createIcons();
-        }
-
-        function renderColorPicker() {
-            const picker = document.getElementById('color-picker');
-            picker.innerHTML = '';
-            colorThemes.forEach(theme => {
-                const isSelected = selectedNewCategoryColor.value === theme.value;
-                const ringClass = isSelected ? 'ring-2 ring-offset-2' : '';
-                const btn = document.createElement('button');
-                btn.className = `w-6 h-6 rounded-full cursor-pointer transition-all hover:scale-110 ${theme.dotClass.split(' ')[0]} ${isSelected ? theme.dotClass.split(' ')[1] + ' ' + ringClass : ''}`;
-                btn.onclick = () => { selectedNewCategoryColor = theme; renderColorPicker(); };
-                picker.appendChild(btn);
-            });
-        }
-
-        async function addNewCategory() {
-            if (!currentUser) return;
-            const name = document.getElementById('new-category-name').value.trim();
-            if (!name) return showToast('請輸入分類名稱！', false);
-            if (categories.some(c => c.name === name)) return showToast('此分類名稱已存在！', false);
-            
-            const newCat = { 
-                id: 'cat_' + Math.random().toString(36).substr(2, 9), 
-                name: name, 
-                colorClass: selectedNewCategoryColor.class 
-            };
-            
-            try {
-                await setDoc(doc(db, 'categories', newCat.id), newCat);
-                document.getElementById('new-category-name').value = '';
-                showToast('分類已新增到雲端！'); 
-            } catch(e) { showToast('分類新增失敗', false); }
-        }
-
-        async function deleteCategory(id) {
-            if (!currentUser) return;
-            if (categories.length <= 1) return showToast('請至少保留一個分類！', false);
-            try {
-                await deleteDoc(doc(db, 'categories', id));
-                showToast('分類已刪除');
-            } catch(e) { showToast('刪除失敗', false); }
-        }
-
-        // --- 編輯任務功能雲端版 ---
-        let currentEditTaskId = null;
-
-        function openEditModal(taskId) {
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
-            
-            currentEditTaskId = taskId;
-            document.getElementById('edit-task-title').value = task.text;
-            document.getElementById('edit-task-desc').value = task.description || '';
-            
-            const select = document.getElementById('edit-task-category');
-            select.innerHTML = '';
-            categories.forEach(cat => {
-                const opt = document.createElement('option');
-                opt.value = cat.name; opt.textContent = cat.name;
-                select.appendChild(opt);
-            });
-            select.value = task.category;
-
-            const modal = document.getElementById('edit-modal');
-            const content = document.getElementById('edit-modal-content');
-            modal.classList.remove('hidden'); void modal.offsetWidth;
-            modal.classList.remove('opacity-0'); content.classList.remove('scale-95');
-            lucide.createIcons();
-        }
-
-        function closeEditModal() {
-            const modal = document.getElementById('edit-modal');
-            const content = document.getElementById('edit-modal-content');
-            modal.classList.add('opacity-0'); content.classList.add('scale-95');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                currentEditTaskId = null;
-            }, 300);
-        }
-
-        async function saveEditedTask() {
-            if (!currentEditTaskId || !currentUser) return;
-            const title = document.getElementById('edit-task-title').value.trim();
-            const desc = document.getElementById('edit-task-desc').value.trim();
-            const category = document.getElementById('edit-task-category').value;
-            
-            if (title === '') { showToast('請輸入任務標題！', false); return; }
-            
-            const task = tasks.find(t => t.id === currentEditTaskId);
-            if (task) {
-                task.text = title;
-                task.description = desc;
-                task.category = category;
-                try {
-                    await setDoc(doc(db, 'tasks', task.id), task);
-                    closeEditModal();
-                    showToast('任務已更新至雲端！');
-                } catch(e) { showToast('更新失敗', false); }
-            }
-        }
-
-        // --- 匯出功能 ---
-        function exportReport() {
-            const currentTasks = tasks.filter(t => t.date === selectedDateStr);
-            const doneTasks = currentTasks.filter(t => t.status === 'done');
-            const inprogressTasks = currentTasks.filter(t => t.status === 'inprogress');
-            const todoTasks = currentTasks.filter(t => t.status === 'todo');
-
-            const formatTask = (t) => {
-                let text = ` - [${t.category}] ${t.text}`;
-                if (t.description) {
-                    text += `\n   備註: ${t.description.replace(/\n/g, '\n   ')}`;
+            lockBtn.addEventListener('click', () => {
+                if (isUnlocked) {
+                    isUnlocked = false;
+                    localStorage.removeItem('is_hankuang_unlocked');
+                    updateLockUI();
+                    updateUI();
+                    showToast("已登出管理員模式");
+                } else {
+                    pwdModal.classList.remove('hidden');
+                    pwdInput.value = '';
+                    pwdInput.focus();
                 }
-                return text + '\n';
-            };
+            });
 
-            let report = `📅 工作日誌：${selectedDateStr}\n\n`;
+            document.getElementById('pwd-cancel').addEventListener('click', () => {
+                pwdModal.classList.add('hidden');
+            });
+
+            document.getElementById('pwd-confirm').addEventListener('click', () => {
+                if (pwdInput.value === ADMIN_KEY) {
+                    isUnlocked = true;
+                    localStorage.setItem('is_hankuang_unlocked', 'true');
+                    updateLockUI();
+                    updateUI();
+                    pwdModal.classList.add('hidden');
+                    showToast("驗證成功，管理權限已啟用");
+                } else {
+                    showToast("密碼錯誤，請重試", false);
+                }
+            });
+
+            // 支援 Enter 鍵確認密碼
+            pwdInput.addEventListener('keypress', (e) => {
+                if(e.key === 'Enter') document.getElementById('pwd-confirm').click();
+            });
+
+            document.getElementById('add-task-btn').addEventListener('click', addTask);
+            document.getElementById('task-input').addEventListener('keypress', e => { if(e.key === 'Enter') addTask(); });
             
-            report += `✅ 【已完成】(${doneTasks.length})\n`;
-            doneTasks.forEach(t => report += formatTask(t));
-            if (doneTasks.length === 0) report += ` - 無\n`;
+            document.getElementById('today-btn').addEventListener('click', () => { 
+                displayDate = new Date(); 
+                selectedDateStr = displayDate.toISOString().split('T')[0]; 
+                refreshView(); 
+            });
+
+            document.getElementById('prev-month-btn').addEventListener('click', () => { displayDate.setMonth(displayDate.getMonth() - 1); refreshView(); });
+            document.getElementById('next-month-btn').addEventListener('click', () => { displayDate.setMonth(displayDate.getMonth() + 1); refreshView(); });
             
-            report += `\n🚀 【進行中】(${inprogressTasks.length})\n`;
-            inprogressTasks.forEach(t => report += formatTask(t));
-            if (inprogressTasks.length === 0) report += ` - 無\n`;
+            document.getElementById('export-btn').addEventListener('click', () => {
+                const dayTasks = tasks.filter(t => t.date === selectedDateStr);
+                const report = `📅 ${selectedDateStr} 工作日誌\n` + 
+                    dayTasks.map(t => `[${t.status === 'done' ? '完成' : t.status === 'inprogress' ? '進行中' : '待辦'}] ${t.text}${t.description ? ' (' + t.description + ')' : ''}`).join('\n');
+                copyToClipboard(report);
+            });
 
-            report += `\n📌 【待辦項目】(${todoTasks.length})\n`;
-            todoTasks.forEach(t => report += formatTask(t));
-            if (todoTasks.length === 0) report += ` - 無\n`;
-
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(report).then(() => showToast('報表已複製到剪貼簿！')).catch(err => fallbackCopy(report));
-            } else { fallbackCopy(report); }
+            document.querySelectorAll('.column-drop-zone').forEach(z => {
+                z.ondragover = e => { e.preventDefault(); if(isUnlocked) z.classList.add('drag-over'); };
+                z.ondragleave = () => z.classList.remove('drag-over');
+                z.ondrop = e => {
+                    e.preventDefault();
+                    z.classList.remove('drag-over');
+                    if(!isUnlocked) return;
+                    const id = e.dataTransfer.getData('tid');
+                    if(id) updateTaskStatus(id, z.dataset.status);
+                };
+            });
         }
 
-        function fallbackCopy(text) {
-            const ta = document.createElement("textarea");
-            ta.value = text; ta.style.position = "fixed"; document.body.appendChild(ta);
-            ta.focus(); ta.select();
-            try { document.execCommand('copy'); showToast('報表已複製到剪貼簿！'); } 
-            catch (err) { showToast('複製失敗，請手動複製', false); }
-            document.body.removeChild(ta);
+        // --- 7. 初始化啟動 ---
+
+        const startApp = async () => {
+            setupEventListeners();
+            
+            onAuthStateChanged(auth, u => {
+                if(u) {
+                    onSnapshot(collection(db, 'tasks'), s => {
+                        tasks = s.docs.map(d => d.data());
+                        refreshView();
+                    }, (err) => console.error("Snapshot error:", err));
+                    
+                    onSnapshot(collection(db, 'categories'), s => {
+                        categories = s.docs.map(d => d.data());
+                        const sel = document.getElementById('category-input');
+                        if(sel) sel.innerHTML = categories.length ? categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('') : '<option value="一般">一般</option>';
+                    });
+                    
+                    const dot = document.getElementById('sync-dot');
+                    const syncText = document.getElementById('sync-status-text');
+                    if(dot) dot.className = "absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white";
+                    if(syncText) syncText.textContent = "雲端即時同步中";
+                }
+            });
+
+            try { await signInAnonymously(auth); } catch(e) { showToast("連線失敗，請檢查網路", false); }
+
+            if (localStorage.getItem('is_hankuang_unlocked') === 'true') {
+                isUnlocked = true;
+            }
+            updateLockUI();
+            refreshView();
+        };
+
+        // 確保 DOM 載入後才執行
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startApp);
+        } else {
+            startApp();
         }
 
-        function showToast(message, isSuccess = true) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-message').textContent = message;
-            const icon = toast.querySelector('i');
-            icon.setAttribute('data-lucide', isSuccess ? 'check-circle-2' : 'x-circle');
-            icon.className = isSuccess ? 'text-brand-400' : 'text-red-400';
-            lucide.createIcons();
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
-        }
-
-        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
