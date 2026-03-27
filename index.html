@@ -47,6 +47,10 @@
             background-color: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(2px);
         }
+        /* 自訂複選框顏色 */
+        .subtask-cb {
+            accent-color: #14b8a6; /* brand-500 */
+        }
     </style>
     <script>
         tailwind.config = {
@@ -136,7 +140,7 @@
                 <div class="admin-only-block bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-4">
                     <div class="flex flex-col xl:flex-row gap-3">
                         <div class="flex-1 flex flex-col gap-2">
-                            <input type="text" id="task-input" placeholder="這天要做什麼？ (Enter)" class="w-full pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
+                            <input type="text" id="task-input" placeholder="這天要做什麼？ (Enter 快速新增)" class="w-full pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
                             <textarea id="task-desc-input" placeholder="備註 (選填)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none resize-none h-12"></textarea>
                         </div>
                         <div class="flex gap-2 shrink-0">
@@ -188,15 +192,34 @@
 
     <!-- 編輯任務對話框 -->
     <div id="edit-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-backdrop">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden p-6 transform transition-all">
-            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <i data-lucide="edit" class="text-brand-500 w-5 h-5"></i> 編輯任務
-            </h3>
-            <input type="text" id="edit-task-title" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none mb-3">
-            <select id="edit-task-category" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none mb-3"></select>
-            <textarea id="edit-task-desc" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none mb-4 resize-none h-20"></textarea>
-            <div class="flex gap-3">
-                <button id="edit-cancel" class="flex-1 py-2 text-sm font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">取消</button>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50 shrink-0">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="edit" class="text-brand-500 w-5 h-5"></i> 編輯任務
+                </h3>
+                <button id="edit-cancel-top" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-6 flex-1 overflow-y-auto">
+                <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">任務標題</label>
+                <input type="text" id="edit-task-title" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none mb-4">
+                
+                <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">工作分類</label>
+                <select id="edit-task-category" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none mb-4"></select>
+                
+                <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">子項目 (Checklist)</label>
+                <div id="edit-subtask-list" class="flex flex-col gap-2 mb-2 max-h-32 overflow-y-auto no-scrollbar">
+                    <!-- 子項目列表將由 JS 生成 -->
+                </div>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="new-edit-subtask-input" placeholder="新增可勾選的子項目..." class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm">
+                    <button type="button" id="add-edit-subtask-btn" class="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 text-sm font-medium transition-colors shrink-0">新增</button>
+                </div>
+
+                <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">備註</label>
+                <textarea id="edit-task-desc" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none resize-none h-20"></textarea>
+            </div>
+            <div class="p-4 border-t bg-slate-50 flex gap-3 shrink-0">
+                <button id="edit-cancel" class="flex-1 py-2 text-sm font-medium text-slate-500 bg-slate-200 hover:bg-slate-300 rounded-lg transition-colors">取消</button>
                 <button id="edit-confirm" class="flex-1 py-2 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm">儲存</button>
             </div>
         </div>
@@ -251,6 +274,7 @@
         let displayDate = new Date();
         let selectedDateStr = new Date().toISOString().split('T')[0];
         let currentEditTaskId = null;
+        let currentEditSubtasks = []; // 用於在編輯視窗中暫存子項目
 
         const colorThemes = [
             { value: 'purple', class: 'bg-purple-100 text-purple-700 border-purple-200', dotClass: 'bg-purple-500 ring-purple-500' },
@@ -331,6 +355,7 @@
                     category: document.getElementById('category-input').value || '一般', 
                     status: 'todo', 
                     date: selectedDateStr, 
+                    subtasks: [], // 初始化空的子項目陣列
                     timestamp: Date.now() 
                 });
                 input.value = ''; 
@@ -427,7 +452,6 @@
             if(window.lucide) lucide.createIcons();
         }
 
-        // 核心修復：直接將 EventListener 綁定在剛建立的 DOM 元素上，不依賴 ID 尋找
         function createTaskCard(t) {
             const card = document.createElement('div');
             card.className = `task-card bg-white p-3 rounded-lg shadow-sm border border-slate-100 mb-2 group relative ${isUnlocked ? 'can-drag' : ''}`;
@@ -441,27 +465,60 @@
             const catInfo = categories.find(c => c.name === t.category);
             const colorClass = catInfo ? catInfo.colorClass : 'bg-slate-100 text-slate-500 border-slate-200';
 
+            // 處理子項目的 HTML
+            const subtasksHtml = (t.subtasks && t.subtasks.length > 0) ? `
+                <div class="mt-2 space-y-1.5 border-t border-slate-100 pt-2">
+                    ${t.subtasks.map(st => `
+                        <label class="flex items-start gap-2 text-xs text-slate-600 ${isUnlocked ? 'cursor-pointer hover:text-slate-800' : 'cursor-default'}">
+                            <input type="checkbox" class="subtask-cb mt-0.5 subtask-cb w-3.5 h-3.5 rounded border-slate-300" data-stid="${st.id}" ${st.isCompleted ? 'checked' : ''} ${!isUnlocked ? 'disabled' : ''}>
+                            <span class="flex-1 ${st.isCompleted ? 'line-through text-slate-400' : ''}">${st.text}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            ` : '';
+
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-1">
                     <span class="text-[9px] px-1.5 py-0.5 rounded uppercase font-bold border ${colorClass}">${t.category}</span>
                     ${isUnlocked ? `
                         <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button class="edit-btn text-slate-300 hover:text-blue-500 p-0.5"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
+                            <button class="edit-btn text-slate-300 hover:text-blue-500 p-0.5" title="編輯任務與子項目"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
                             <button class="delete-btn text-slate-300 hover:text-red-500 p-0.5"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                         </div>
                     ` : ''}
                 </div>
                 <p class="text-sm font-medium ${t.status === 'done' ? 'line-through text-slate-400' : ''}">${t.text}</p>
                 ${t.description ? `<p class="text-[10px] text-slate-400 mt-1 bg-slate-50 p-1.5 rounded truncate">${t.description}</p>` : ''}
+                ${subtasksHtml}
             `;
             
-            // 直接在卡片內部找到按鈕並綁定事件
             if(isUnlocked) {
                 const delBtn = card.querySelector('.delete-btn');
                 if(delBtn) delBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteTask(t.id); });
 
                 const editBtn = card.querySelector('.edit-btn');
                 if(editBtn) editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEditModal(t.id); });
+
+                // 綁定子項目勾選事件
+                card.querySelectorAll('.subtask-cb').forEach(cb => {
+                    cb.addEventListener('change', async (e) => {
+                        e.stopPropagation();
+                        const stid = e.target.dataset.stid;
+                        const sub = t.subtasks.find(x => x.id === stid);
+                        if (sub) {
+                            sub.isCompleted = e.target.checked;
+                            // 本地畫面即時更新
+                            const span = e.target.nextElementSibling;
+                            if (sub.isCompleted) span.classList.add('line-through', 'text-slate-400');
+                            else span.classList.remove('line-through', 'text-slate-400');
+                            
+                            // 更新至資料庫
+                            try { await setDoc(doc(db, 'tasks', t.id), t); } 
+                            catch(err) { showToast("更新子項目失敗", false); }
+                        }
+                    });
+                    cb.addEventListener('click', e => e.stopPropagation()); // 防止點擊勾選時觸發其他事件
+                });
             }
             return card;
         }
@@ -477,7 +534,6 @@
                     <span class="text-xs font-semibold px-2.5 py-1.5 rounded-md border ${cat.colorClass}">${cat.name}</span>
                     <button class="del-cat-btn text-slate-400 hover:text-red-500 p-1.5"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 `;
-                // 直接綁定刪除分類事件
                 const delBtn = li.querySelector('.del-cat-btn');
                 if(delBtn) delBtn.addEventListener('click', () => deleteCategory(cat.id));
                 list.appendChild(li);
@@ -500,6 +556,34 @@
 
         // --- 6. 模態框(Modal)控制 ---
 
+        const renderEditSubtasks = () => {
+            const list = document.getElementById('edit-subtask-list');
+            if (!list) return;
+            
+            if (currentEditSubtasks.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">尚未新增子項目</p>`;
+                return;
+            }
+
+            list.innerHTML = currentEditSubtasks.map(st => `
+                <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-sm">
+                    <span class="text-sm truncate flex-1 ${st.isCompleted ? 'line-through text-slate-400' : 'text-slate-700'}">${st.text}</span>
+                    <button type="button" class="text-slate-300 hover:text-red-500 p-1 del-edit-subtask" data-id="${st.id}">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            `).join('');
+            
+            list.querySelectorAll('.del-edit-subtask').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    currentEditSubtasks = currentEditSubtasks.filter(x => x.id !== id);
+                    renderEditSubtasks();
+                });
+            });
+            if(window.lucide) lucide.createIcons();
+        };
+
         const openEditModal = (id) => {
             const t = tasks.find(x => x.id === id);
             if(!t) return;
@@ -512,12 +596,19 @@
                 sel.innerHTML = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
                 sel.value = t.category;
             }
+
+            // 複製並渲染該任務的子項目
+            currentEditSubtasks = t.subtasks ? JSON.parse(JSON.stringify(t.subtasks)) : [];
+            document.getElementById('new-edit-subtask-input').value = '';
+            renderEditSubtasks();
+
             document.getElementById('edit-modal').classList.remove('hidden');
         };
 
         const closeEditModal = () => {
             document.getElementById('edit-modal').classList.add('hidden');
             currentEditTaskId = null;
+            currentEditSubtasks = [];
         };
 
         const saveEditedTask = async () => {
@@ -530,6 +621,8 @@
                 t.text = txt;
                 t.description = document.getElementById('edit-task-desc').value.trim();
                 t.category = document.getElementById('edit-task-category').value;
+                t.subtasks = currentEditSubtasks; // 儲存編輯後的子項目
+                
                 try {
                     await setDoc(doc(db, 'tasks', t.id), t);
                     closeEditModal();
@@ -578,7 +671,28 @@
 
             // 編輯任務對話框
             document.getElementById('edit-cancel').addEventListener('click', closeEditModal);
+            document.getElementById('edit-cancel-top').addEventListener('click', closeEditModal);
             document.getElementById('edit-confirm').addEventListener('click', saveEditedTask);
+
+            // 編輯視窗：新增子項目按鈕
+            document.getElementById('add-edit-subtask-btn').addEventListener('click', () => {
+                const input = document.getElementById('new-edit-subtask-input');
+                const txt = input.value.trim();
+                if(!txt) return;
+                currentEditSubtasks.push({ 
+                    id: 'sub_' + Date.now() + Math.random().toString(36).substr(2,5), 
+                    text: txt, 
+                    isCompleted: false 
+                });
+                input.value = '';
+                renderEditSubtasks();
+            });
+            document.getElementById('new-edit-subtask-input').addEventListener('keypress', (e) => {
+                if(e.key === 'Enter') {
+                    e.preventDefault(); 
+                    document.getElementById('add-edit-subtask-btn').click();
+                }
+            });
 
             // 分類管理對話框
             document.getElementById('manage-category-btn').addEventListener('click', () => {
@@ -611,11 +725,17 @@
             document.getElementById('prev-month-btn').addEventListener('click', () => { displayDate.setMonth(displayDate.getMonth() - 1); refreshView(); });
             document.getElementById('next-month-btn').addEventListener('click', () => { displayDate.setMonth(displayDate.getMonth() + 1); refreshView(); });
             
-            // 報表匯出
+            // 報表匯出 (加上子項目的輸出)
             document.getElementById('export-btn').addEventListener('click', () => {
                 const dayTasks = tasks.filter(t => t.date === selectedDateStr);
-                const report = `📅 ${selectedDateStr} 工作日誌\n` + 
-                    dayTasks.map(t => `[${t.status === 'done' ? '完成' : t.status === 'inprogress' ? '進行中' : '待辦'}] ${t.text}${t.description ? ' (' + t.description + ')' : ''}`).join('\n');
+                const report = `📅 ${selectedDateStr} 工作日誌\n\n` + 
+                    dayTasks.map(t => {
+                        let res = `[${t.status === 'done' ? '完成' : t.status === 'inprogress' ? '進行中' : '待辦'}] ${t.text}${t.description ? ' (' + t.description + ')' : ''}`;
+                        if (t.subtasks && t.subtasks.length > 0) {
+                            res += '\n' + t.subtasks.map(st => `    ${st.isCompleted ? '[x]' : '[ ]'} ${st.text}`).join('\n');
+                        }
+                        return res;
+                    }).join('\n\n');
                 copyToClipboard(report);
             });
 
