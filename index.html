@@ -132,6 +132,7 @@
         <section class="flex-1 flex flex-col min-w-0">
             <div class="mb-6">
                 <h2 id="selected-date-title" class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"></h2>
+                
                 <div class="admin-only-block bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-4">
                     <div class="flex flex-col xl:flex-row gap-3">
                         <div class="flex-1 flex flex-col gap-2">
@@ -140,6 +141,9 @@
                         </div>
                         <div class="flex gap-2 shrink-0">
                             <select id="category-input" class="px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm"></select>
+                            <button id="manage-category-btn" class="px-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center justify-center" title="管理分類">
+                                <i data-lucide="settings-2" class="w-4 h-4"></i>
+                            </button>
                             <button id="add-task-btn" class="bg-brand-500 text-white px-4 rounded-lg font-medium text-sm">新增</button>
                         </div>
                     </div>
@@ -163,6 +167,41 @@
         </section>
     </main>
 
+    <!-- 分類管理對話框 -->
+    <div id="category-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-backdrop">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh]">
+            <div class="px-5 py-4 border-b flex justify-between items-center bg-slate-50 shrink-0">
+                <h3 class="font-bold flex items-center gap-2"><i data-lucide="tags" class="text-brand-500 w-5 h-5"></i> 管理分類</h3>
+                <button id="close-category-modal" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-5 flex-1 overflow-y-auto">
+                <ul id="category-list" class="flex flex-col gap-2"></ul>
+            </div>
+            <div class="p-5 border-t bg-slate-50 shrink-0">
+                <h4 class="text-sm font-bold mb-3 flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> 新增</h4>
+                <input type="text" id="new-category-name" placeholder="分類名稱" class="w-full px-3 py-2 bg-white border rounded-lg mb-3 text-sm outline-none">
+                <div class="flex flex-wrap gap-2 mb-3" id="color-picker"></div>
+                <button id="add-category-btn" class="w-full bg-slate-800 text-white py-2 rounded-lg text-sm transition-colors hover:bg-slate-900">新增分類</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 編輯任務對話框 -->
+    <div id="edit-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-backdrop">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden p-6 transform transition-all">
+            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i data-lucide="edit" class="text-brand-500 w-5 h-5"></i> 編輯任務
+            </h3>
+            <input type="text" id="edit-task-title" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none mb-3">
+            <select id="edit-task-category" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none mb-3"></select>
+            <textarea id="edit-task-desc" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none mb-4 resize-none h-20"></textarea>
+            <div class="flex gap-3">
+                <button id="edit-cancel" class="flex-1 py-2 text-sm font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">取消</button>
+                <button id="edit-confirm" class="flex-1 py-2 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-lg transition-colors shadow-sm">儲存</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 密碼輸入對話框 -->
     <div id="pwd-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 modal-backdrop">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden p-6 transform transition-all">
@@ -178,6 +217,7 @@
         </div>
     </div>
 
+    <!-- 訊息提示 -->
     <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-800 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 z-50 text-sm">
         <span id="toast-icon-container"></span>
         <span id="toast-message">訊息</span>
@@ -198,7 +238,7 @@
             appId: "1:1011435018124:web:b58d955d5a1b5d30e2a8a9",
             measurementId: "G-J43KCXFF1R"
         };
-        const ADMIN_KEY = "921886"; 
+        const ADMIN_KEY = "1234"; 
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -210,6 +250,17 @@
         let isUnlocked = false; 
         let displayDate = new Date();
         let selectedDateStr = new Date().toISOString().split('T')[0];
+        let currentEditTaskId = null;
+
+        const colorThemes = [
+            { value: 'purple', class: 'bg-purple-100 text-purple-700 border-purple-200', dotClass: 'bg-purple-500 ring-purple-500' },
+            { value: 'blue', class: 'bg-blue-100 text-blue-700 border-blue-200', dotClass: 'bg-blue-500 ring-blue-500' },
+            { value: 'emerald', class: 'bg-emerald-100 text-emerald-700 border-emerald-200', dotClass: 'bg-emerald-500 ring-emerald-500' },
+            { value: 'amber', class: 'bg-amber-100 text-amber-700 border-amber-200', dotClass: 'bg-amber-500 ring-amber-500' },
+            { value: 'rose', class: 'bg-rose-100 text-rose-700 border-rose-200', dotClass: 'bg-rose-500 ring-rose-500' },
+            { value: 'slate', class: 'bg-slate-100 text-slate-700 border-slate-200', dotClass: 'bg-slate-500 ring-slate-500' }
+        ];
+        let selectedNewCategoryColor = colorThemes[0];
 
         // --- 3. 核心工具函數 ---
 
@@ -218,17 +269,13 @@
             textArea.value = text;
             textArea.style.position = "fixed";
             textArea.style.left = "-9999px";
-            textArea.style.top = "0";
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
             try {
-                const successful = document.execCommand('copy');
-                if (successful) showToast("已成功複製到剪貼簿");
+                if (document.execCommand('copy')) showToast("已成功複製到剪貼簿");
                 else showToast("複製失敗", false);
-            } catch (err) {
-                showToast("瀏覽器不支援複製功能", false);
-            }
+            } catch (err) { showToast("瀏覽器不支援複製功能", false); }
             document.body.removeChild(textArea);
         };
 
@@ -249,8 +296,7 @@
             const container = document.getElementById('lock-icon-container');
             const btn = document.getElementById('lock-btn');
             if (container && btn) {
-                const iconName = isUnlocked ? 'unlock' : 'lock';
-                container.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5"></i>`;
+                container.innerHTML = `<i data-lucide="${isUnlocked ? 'unlock' : 'lock'}" class="w-5 h-5"></i>`;
                 if (isUnlocked) {
                     btn.classList.add('text-brand-600');
                     document.body.classList.add('unlocked');
@@ -303,6 +349,13 @@
             if (!isUnlocked) return;
             const t = tasks.find(x => x.id === id);
             if(t) await setDoc(doc(db, 'tasks', id), {...t, status: s});
+        };
+
+        const deleteCategory = async (id) => {
+            if (!isUnlocked) return;
+            if (categories.length <= 1) return showToast("至少保留一個分類", false);
+            try { await deleteDoc(doc(db, 'categories', id)); showToast("分類已刪除"); } 
+            catch(e) { showToast("刪除失敗", false); }
         };
 
         // --- 5. 畫面渲染邏輯 ---
@@ -374,6 +427,7 @@
             if(window.lucide) lucide.createIcons();
         }
 
+        // 核心修復：直接將 EventListener 綁定在剛建立的 DOM 元素上，不依賴 ID 尋找
         function createTaskCard(t) {
             const card = document.createElement('div');
             card.className = `task-card bg-white p-3 rounded-lg shadow-sm border border-slate-100 mb-2 group relative ${isUnlocked ? 'can-drag' : ''}`;
@@ -384,39 +438,120 @@
                 card.addEventListener('dragend', () => card.classList.remove('opacity-40'));
             }
             
-            const btnId = `del_btn_${t.id.replace(/\W/g, '')}`;
+            const catInfo = categories.find(c => c.name === t.category);
+            const colorClass = catInfo ? catInfo.colorClass : 'bg-slate-100 text-slate-500 border-slate-200';
+
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-1">
-                    <span class="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 uppercase font-bold">${t.category}</span>
-                    ${isUnlocked ? `<button id="${btnId}" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
+                    <span class="text-[9px] px-1.5 py-0.5 rounded uppercase font-bold border ${colorClass}">${t.category}</span>
+                    ${isUnlocked ? `
+                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button class="edit-btn text-slate-300 hover:text-blue-500 p-0.5"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
+                            <button class="delete-btn text-slate-300 hover:text-red-500 p-0.5"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                        </div>
+                    ` : ''}
                 </div>
                 <p class="text-sm font-medium ${t.status === 'done' ? 'line-through text-slate-400' : ''}">${t.text}</p>
                 ${t.description ? `<p class="text-[10px] text-slate-400 mt-1 bg-slate-50 p-1.5 rounded truncate">${t.description}</p>` : ''}
             `;
             
+            // 直接在卡片內部找到按鈕並綁定事件
             if(isUnlocked) {
-                setTimeout(() => {
-                    const btn = document.getElementById(btnId);
-                    if(btn) btn.onclick = (e) => { e.stopPropagation(); deleteTask(t.id); };
-                }, 0);
+                const delBtn = card.querySelector('.delete-btn');
+                if(delBtn) delBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteTask(t.id); });
+
+                const editBtn = card.querySelector('.edit-btn');
+                if(editBtn) editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEditModal(t.id); });
             }
             return card;
         }
 
-        // --- 6. 事件監聽與權限對話框 ---
+        function renderCategoryList() {
+            const list = document.getElementById('category-list');
+            if (!list) return;
+            list.innerHTML = '';
+            categories.forEach(cat => {
+                const li = document.createElement('li');
+                li.className = "flex justify-between items-center p-3 rounded-lg border border-slate-200 bg-white shadow-sm";
+                li.innerHTML = `
+                    <span class="text-xs font-semibold px-2.5 py-1.5 rounded-md border ${cat.colorClass}">${cat.name}</span>
+                    <button class="del-cat-btn text-slate-400 hover:text-red-500 p-1.5"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                `;
+                // 直接綁定刪除分類事件
+                const delBtn = li.querySelector('.del-cat-btn');
+                if(delBtn) delBtn.addEventListener('click', () => deleteCategory(cat.id));
+                list.appendChild(li);
+            });
+            if(window.lucide) lucide.createIcons();
+        }
+
+        function renderColorPicker() {
+            const picker = document.getElementById('color-picker');
+            if(!picker) return;
+            picker.innerHTML = '';
+            colorThemes.forEach(theme => {
+                const btn = document.createElement('button');
+                const isSelected = selectedNewCategoryColor.value === theme.value;
+                btn.className = `w-6 h-6 rounded-full cursor-pointer transition-all ${theme.dotClass.split(' ')[0]} ${isSelected ? 'ring-2 ring-offset-2 ' + theme.dotClass.split(' ')[1] : ''}`;
+                btn.addEventListener('click', () => { selectedNewCategoryColor = theme; renderColorPicker(); });
+                picker.appendChild(btn);
+            });
+        }
+
+        // --- 6. 模態框(Modal)控制 ---
+
+        const openEditModal = (id) => {
+            const t = tasks.find(x => x.id === id);
+            if(!t) return;
+            currentEditTaskId = id;
+            document.getElementById('edit-task-title').value = t.text;
+            document.getElementById('edit-task-desc').value = t.description || '';
+            
+            const sel = document.getElementById('edit-task-category');
+            if(sel) {
+                sel.innerHTML = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+                sel.value = t.category;
+            }
+            document.getElementById('edit-modal').classList.remove('hidden');
+        };
+
+        const closeEditModal = () => {
+            document.getElementById('edit-modal').classList.add('hidden');
+            currentEditTaskId = null;
+        };
+
+        const saveEditedTask = async () => {
+            if(!currentEditTaskId || !isUnlocked) return;
+            const txt = document.getElementById('edit-task-title').value.trim();
+            if(!txt) return showToast("標題不可為空白", false);
+            
+            const t = tasks.find(x => x.id === currentEditTaskId);
+            if(t) {
+                t.text = txt;
+                t.description = document.getElementById('edit-task-desc').value.trim();
+                t.category = document.getElementById('edit-task-category').value;
+                try {
+                    await setDoc(doc(db, 'tasks', t.id), t);
+                    closeEditModal();
+                    showToast("已儲存變更");
+                } catch(e) { showToast("儲存失敗", false); }
+            }
+        };
+
+        // --- 7. 事件監聽與初始化 ---
 
         function setupEventListeners() {
+            // 鎖頭與密碼框
             const pwdModal = document.getElementById('pwd-modal');
             const pwdInput = document.getElementById('pwd-input');
-            const lockBtn = document.getElementById('lock-btn');
 
-            lockBtn.addEventListener('click', () => {
+            document.getElementById('lock-btn').addEventListener('click', () => {
                 if (isUnlocked) {
                     isUnlocked = false;
                     localStorage.removeItem('is_hankuang_unlocked');
                     updateLockUI();
                     updateUI();
-                    showToast("已登出管理員模式");
+                    showToast("已鎖定編輯權限");
                 } else {
                     pwdModal.classList.remove('hidden');
                     pwdInput.value = '';
@@ -424,10 +559,8 @@
                 }
             });
 
-            document.getElementById('pwd-cancel').addEventListener('click', () => {
-                pwdModal.classList.add('hidden');
-            });
-
+            document.getElementById('pwd-cancel').addEventListener('click', () => pwdModal.classList.add('hidden'));
+            
             document.getElementById('pwd-confirm').addEventListener('click', () => {
                 if (pwdInput.value === ADMIN_KEY) {
                     isUnlocked = true;
@@ -437,15 +570,35 @@
                     pwdModal.classList.add('hidden');
                     showToast("驗證成功，管理權限已啟用");
                 } else {
-                    showToast("密碼錯誤，請重試", false);
+                    showToast("密碼錯誤", false);
                 }
             });
 
-            // 支援 Enter 鍵確認密碼
-            pwdInput.addEventListener('keypress', (e) => {
-                if(e.key === 'Enter') document.getElementById('pwd-confirm').click();
+            pwdInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') document.getElementById('pwd-confirm').click(); });
+
+            // 編輯任務對話框
+            document.getElementById('edit-cancel').addEventListener('click', closeEditModal);
+            document.getElementById('edit-confirm').addEventListener('click', saveEditedTask);
+
+            // 分類管理對話框
+            document.getElementById('manage-category-btn').addEventListener('click', () => {
+                if(!isUnlocked) return showToast("無編輯權限", false);
+                renderCategoryList();
+                renderColorPicker();
+                document.getElementById('category-modal').classList.remove('hidden');
+            });
+            document.getElementById('close-category-modal').addEventListener('click', () => {
+                document.getElementById('category-modal').classList.add('hidden');
+            });
+            document.getElementById('add-category-btn').addEventListener('click', async () => {
+                const input = document.getElementById('new-category-name');
+                const name = input.value.trim();
+                if(!name) return;
+                const newCat = { id: 'cat_' + Date.now(), name, colorClass: selectedNewCategoryColor.class };
+                try { await setDoc(doc(db, 'categories', newCat.id), newCat); input.value = ''; } catch(e){}
             });
 
+            // 任務新增與日曆導覽
             document.getElementById('add-task-btn').addEventListener('click', addTask);
             document.getElementById('task-input').addEventListener('keypress', e => { if(e.key === 'Enter') addTask(); });
             
@@ -458,6 +611,7 @@
             document.getElementById('prev-month-btn').addEventListener('click', () => { displayDate.setMonth(displayDate.getMonth() - 1); refreshView(); });
             document.getElementById('next-month-btn').addEventListener('click', () => { displayDate.setMonth(displayDate.getMonth() + 1); refreshView(); });
             
+            // 報表匯出
             document.getElementById('export-btn').addEventListener('click', () => {
                 const dayTasks = tasks.filter(t => t.date === selectedDateStr);
                 const report = `📅 ${selectedDateStr} 工作日誌\n` + 
@@ -465,6 +619,7 @@
                 copyToClipboard(report);
             });
 
+            // 拖曳區設定
             document.querySelectorAll('.column-drop-zone').forEach(z => {
                 z.ondragover = e => { e.preventDefault(); if(isUnlocked) z.classList.add('drag-over'); };
                 z.ondragleave = () => z.classList.remove('drag-over');
@@ -478,8 +633,6 @@
             });
         }
 
-        // --- 7. 初始化啟動 ---
-
         const startApp = async () => {
             setupEventListeners();
             
@@ -488,12 +641,16 @@
                     onSnapshot(collection(db, 'tasks'), s => {
                         tasks = s.docs.map(d => d.data());
                         refreshView();
-                    }, (err) => console.error("Snapshot error:", err));
+                    });
                     
                     onSnapshot(collection(db, 'categories'), s => {
                         categories = s.docs.map(d => d.data());
                         const sel = document.getElementById('category-input');
                         if(sel) sel.innerHTML = categories.length ? categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('') : '<option value="一般">一般</option>';
+                        // 如果分類管理框是開著的，也即時更新它
+                        if(!document.getElementById('category-modal').classList.contains('hidden')) {
+                            renderCategoryList();
+                        }
                     });
                     
                     const dot = document.getElementById('sync-dot');
@@ -512,7 +669,6 @@
             refreshView();
         };
 
-        // 確保 DOM 載入後才執行
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', startApp);
         } else {
