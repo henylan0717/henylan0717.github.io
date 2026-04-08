@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>漢光的工作看板 (雲端同步版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -24,6 +24,7 @@
         }
         .column-drop-zone {
             min-height: 150px;
+            padding-bottom: 3rem !important; /* 確保最底下有安全距離，卡片不會被截斷 */
             transition: background-color 0.2s ease;
         }
         .column-drop-zone.drag-over {
@@ -48,14 +49,14 @@
             background-color: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(2px);
         }
-        /* 自訂複選框顏色 */
         .subtask-cb {
-            accent-color: #14b8a6; /* brand-500 */
+            accent-color: #14b8a6;
         }
-        /* 確保 SortableJS 在手機上拖曳時，元素會保持可見 */
-        .sortable-fallback {
-            opacity: 1 !important; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+        /* 拖曳時微微傾斜的動態效果 */
+        .sortable-drag-effect {
+            transform: rotate(2deg) scale(1.02);
+            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.15);
+            opacity: 0.9 !important;
             cursor: grabbing !important;
         }
     </style>
@@ -73,7 +74,8 @@
         }
     </script>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
+<!-- 將 h-screen 改為 h-[100dvh] 完美適配手機瀏覽器高度 -->
+<body class="bg-slate-50 text-slate-800 font-sans h-[100dvh] flex flex-col overflow-hidden">
 
     <!-- 頂部導覽 -->
     <header class="bg-white shadow-sm px-6 py-4 flex flex-col sm:flex-row justify-between items-center z-10 shrink-0 gap-4">
@@ -104,7 +106,8 @@
     </header>
 
     <!-- 主要內容區 -->
-    <main class="flex-1 overflow-auto p-4 sm:p-6 flex flex-col lg:flex-row gap-6">
+    <!-- 加上 pb-20 確保手機滑到底部時不會被切斷 -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 pb-20 flex flex-col lg:flex-row gap-6 relative">
         
         <aside class="w-full lg:w-80 shrink-0 flex flex-col gap-6">
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
@@ -149,7 +152,6 @@
                         <div class="flex-1 flex flex-col gap-2">
                             <input type="text" id="task-input" placeholder="這天要做什麼？ (Enter 快速新增)" class="w-full pl-4 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
                             
-                            <!-- 新增子項目區塊 (移到備註上方) -->
                             <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 flex flex-col gap-2 mt-1">
                                 <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">子項目 (Checklist)</span>
                                 <div id="new-subtask-list" class="flex flex-col gap-1.5 max-h-32 overflow-y-auto no-scrollbar"></div>
@@ -159,7 +161,6 @@
                                 </div>
                             </div>
 
-                            <!-- 備註區塊 (移到最下方) -->
                             <textarea id="task-desc-input" placeholder="備註 (選填)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none resize-none h-12"></textarea>
                         </div>
                         <div class="flex gap-2 shrink-0">
@@ -174,17 +175,18 @@
             </div>
 
             <div class="flex flex-col md:flex-row gap-4 lg:gap-6 flex-1 min-h-0">
-                <div class="flex-1 flex flex-col bg-slate-100 rounded-xl overflow-hidden">
-                    <div class="p-3 border-b flex justify-between items-center"><h3 class="font-bold text-slate-700 text-xs">待辦</h3><span id="count-todo" class="text-xs">0</span></div>
-                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone" id="todo" data-status="todo"></div>
+                <!-- 手機版賦予 min-h-[350px] 確保每個區塊有固定高度，不會被壓縮，且容易放置 -->
+                <div class="flex-1 flex flex-col bg-slate-100 rounded-xl overflow-hidden min-h-[350px] md:min-h-0 border border-slate-200">
+                    <div class="p-3 border-b border-slate-200 flex justify-between items-center bg-slate-50"><h3 class="font-bold text-slate-700 text-xs">待辦</h3><span id="count-todo" class="text-xs bg-white px-2 py-0.5 rounded-full shadow-sm text-slate-500">0</span></div>
+                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone relative" id="todo" data-status="todo"></div>
                 </div>
-                <div class="flex-1 flex flex-col bg-blue-50 rounded-xl overflow-hidden">
-                    <div class="p-3 border-b flex justify-between items-center"><h3 class="font-bold text-blue-800 text-xs">進行中</h3><span id="count-inprogress" class="text-xs">0</span></div>
-                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone" id="inprogress" data-status="inprogress"></div>
+                <div class="flex-1 flex flex-col bg-blue-50 rounded-xl overflow-hidden min-h-[350px] md:min-h-0 border border-blue-100">
+                    <div class="p-3 border-b border-blue-100 flex justify-between items-center bg-blue-50/50"><h3 class="font-bold text-blue-800 text-xs">進行中</h3><span id="count-inprogress" class="text-xs bg-white px-2 py-0.5 rounded-full shadow-sm text-blue-600">0</span></div>
+                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone relative" id="inprogress" data-status="inprogress"></div>
                 </div>
-                <div class="flex-1 flex flex-col bg-brand-50 rounded-xl overflow-hidden">
-                    <div class="p-3 border-b flex justify-between items-center"><h3 class="font-bold text-brand-800 text-xs">已完成</h3><span id="count-done" class="text-xs">0</span></div>
-                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone" id="done" data-status="done"></div>
+                <div class="flex-1 flex flex-col bg-brand-50 rounded-xl overflow-hidden min-h-[350px] md:min-h-0 border border-brand-100">
+                    <div class="p-3 border-b border-brand-100 flex justify-between items-center bg-brand-50/50"><h3 class="font-bold text-brand-800 text-xs">已完成</h3><span id="count-done" class="text-xs bg-white px-2 py-0.5 rounded-full shadow-sm text-brand-600">0</span></div>
+                    <div class="p-3 flex-1 overflow-y-auto no-scrollbar column-drop-zone relative" id="done" data-status="done"></div>
                 </div>
             </div>
         </section>
@@ -229,9 +231,7 @@
                 <select id="edit-task-category" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none mb-4"></select>
                 
                 <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">子項目 (Checklist)</label>
-                <div id="edit-subtask-list" class="flex flex-col gap-2 mb-2 max-h-32 overflow-y-auto no-scrollbar">
-                    <!-- 子項目列表將由 JS 生成 -->
-                </div>
+                <div id="edit-subtask-list" class="flex flex-col gap-2 mb-2 max-h-32 overflow-y-auto no-scrollbar"></div>
                 <div class="flex gap-2 mb-4">
                     <input type="text" id="new-edit-subtask-input" placeholder="新增可勾選的子項目..." class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm">
                     <button type="button" id="add-edit-subtask-btn" class="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 text-sm font-medium transition-colors shrink-0">新增</button>
@@ -273,7 +273,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- 1. Firebase 設定 ---
         const firebaseConfig = {
             apiKey: "AIzaSyC5A4ypI6fKWsRzI-BTsl4ANVXBMKs1b6c",
             authDomain: "henryjob-dedc8.firebaseapp.com",
@@ -289,16 +288,15 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- 2. 狀態管理 ---
         let tasks = [];
         let categories = [];
         let isUnlocked = false; 
         let displayDate = new Date();
         let selectedDateStr = new Date().toISOString().split('T')[0];
         let currentEditTaskId = null;
-        let currentEditSubtasks = []; // 用於在編輯視窗中暫存子項目
-        let newSubtasks = []; // 用於在新增任務時暫存子項目
-        let sortableInstances = []; // 儲存拖曳實例
+        let currentEditSubtasks = []; 
+        let newSubtasks = []; 
+        let sortableInstances = []; 
 
         const colorThemes = [
             { value: 'purple', class: 'bg-purple-100 text-purple-700 border-purple-200', dotClass: 'bg-purple-500 ring-purple-500' },
@@ -309,8 +307,6 @@
             { value: 'slate', class: 'bg-slate-100 text-slate-700 border-slate-200', dotClass: 'bg-slate-500 ring-slate-500' }
         ];
         let selectedNewCategoryColor = colorThemes[0];
-
-        // --- 3. 核心工具函數 ---
 
         const copyToClipboard = (text) => {
             const textArea = document.createElement("textarea");
@@ -357,7 +353,6 @@
                 if(window.lucide) lucide.createIcons();
             }
             
-            // 更新拖曳權限
             if (sortableInstances.length > 0) {
                 sortableInstances.forEach(s => s.option("disabled", !isUnlocked));
             }
@@ -367,8 +362,6 @@
             renderCalendar();
             updateUI();
         };
-
-        // --- 4. 資料庫操作 ---
 
         const renderNewSubtasks = () => {
             const list = document.getElementById('new-subtask-list');
@@ -409,13 +402,13 @@
                     category: document.getElementById('category-input').value || '一般', 
                     status: 'todo', 
                     date: selectedDateStr, 
-                    subtasks: [...newSubtasks], // 帶入新增時的子項目
+                    subtasks: [...newSubtasks], 
                     timestamp: Date.now() 
                 });
                 input.value = ''; 
                 document.getElementById('task-desc-input').value = '';
-                newSubtasks = []; // 清空暫存
-                renderNewSubtasks(); // 重新渲染清空後的列表
+                newSubtasks = []; 
+                renderNewSubtasks(); 
                 showToast("任務已新增");
             } catch(e) { showToast("儲存失敗", false); }
         };
@@ -438,8 +431,6 @@
             try { await deleteDoc(doc(db, 'categories', id)); showToast("分類已刪除"); } 
             catch(e) { showToast("刪除失敗", false); }
         };
-
-        // --- 5. 畫面渲染邏輯 ---
 
         function renderCalendar() {
             const grid = document.getElementById('calendar-days');
@@ -510,14 +501,13 @@
 
         function createTaskCard(t) {
             const card = document.createElement('div');
-            // 注意：這裡移除了會干擾手機的 HTML5 drag 原生屬性，純粹依靠 SortableJS
+            // 純粹依靠 SortableJS，不使用 draggable=true 以防手機手勢衝突
             card.className = `task-card bg-white p-3 rounded-lg shadow-sm border border-slate-100 mb-2 group relative ${isUnlocked ? 'can-drag' : ''}`;
-            card.dataset.id = t.id; // 供 SortableJS 辨識任務 ID
+            card.dataset.id = t.id; 
             
             const catInfo = categories.find(c => c.name === t.category);
             const colorClass = catInfo ? catInfo.colorClass : 'bg-slate-100 text-slate-500 border-slate-200';
 
-            // 處理子項目的 HTML
             const subtasksHtml = (t.subtasks && t.subtasks.length > 0) ? `
                 <div class="mt-2 space-y-1.5 border-t border-slate-100 pt-2">
                     ${t.subtasks.map(st => `
@@ -551,7 +541,6 @@
                 const editBtn = card.querySelector('.edit-btn');
                 if(editBtn) editBtn.addEventListener('click', (e) => { e.stopPropagation(); openEditModal(t.id); });
 
-                // 綁定子項目勾選事件
                 card.querySelectorAll('.subtask-cb').forEach(cb => {
                     cb.addEventListener('change', async (e) => {
                         e.stopPropagation();
@@ -559,17 +548,14 @@
                         const sub = t.subtasks.find(x => x.id === stid);
                         if (sub) {
                             sub.isCompleted = e.target.checked;
-                            // 本地畫面即時更新
                             const span = e.target.nextElementSibling;
                             if (sub.isCompleted) span.classList.add('line-through', 'text-slate-400');
                             else span.classList.remove('line-through', 'text-slate-400');
-                            
-                            // 更新至資料庫
                             try { await setDoc(doc(db, 'tasks', t.id), t); } 
                             catch(err) { showToast("更新子項目失敗", false); }
                         }
                     });
-                    cb.addEventListener('click', e => e.stopPropagation()); // 防止點擊勾選時觸發其他事件
+                    cb.addEventListener('click', e => e.stopPropagation()); 
                 });
             }
             return card;
@@ -605,8 +591,6 @@
                 picker.appendChild(btn);
             });
         }
-
-        // --- 6. 模態框(Modal)控制 ---
 
         const renderEditSubtasks = () => {
             const list = document.getElementById('edit-subtask-list');
@@ -650,7 +634,6 @@
                 sel.value = t.category;
             }
 
-            // 複製並渲染該任務的子項目
             currentEditSubtasks = t.subtasks ? JSON.parse(JSON.stringify(t.subtasks)) : [];
             document.getElementById('new-edit-subtask-input').value = '';
             renderEditSubtasks();
@@ -675,7 +658,7 @@
                 t.description = document.getElementById('edit-task-desc').value.trim();
                 t.category = document.getElementById('edit-task-category').value;
                 t.date = document.getElementById('edit-task-date').value;
-                t.subtasks = currentEditSubtasks; // 儲存編輯後的子項目
+                t.subtasks = currentEditSubtasks; 
                 
                 try {
                     await setDoc(doc(db, 'tasks', t.id), t);
@@ -685,10 +668,7 @@
             }
         };
 
-        // --- 7. 事件監聽與初始化 ---
-
         function setupEventListeners() {
-            // 鎖頭與密碼框
             const pwdModal = document.getElementById('pwd-modal');
             const pwdInput = document.getElementById('pwd-input');
 
@@ -723,12 +703,10 @@
 
             pwdInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') document.getElementById('pwd-confirm').click(); });
 
-            // 編輯任務對話框
             document.getElementById('edit-cancel').addEventListener('click', closeEditModal);
             document.getElementById('edit-cancel-top').addEventListener('click', closeEditModal);
             document.getElementById('edit-confirm').addEventListener('click', saveEditedTask);
 
-            // 編輯視窗：新增子項目按鈕
             document.getElementById('add-edit-subtask-btn').addEventListener('click', () => {
                 const input = document.getElementById('new-edit-subtask-input');
                 const txt = input.value.trim();
@@ -748,7 +726,6 @@
                 }
             });
 
-            // 主畫面：新增子項目按鈕
             document.getElementById('add-new-subtask-btn').addEventListener('click', () => {
                 const input = document.getElementById('new-subtask-input');
                 const txt = input.value.trim();
@@ -768,7 +745,6 @@
                 }
             });
 
-            // 分類管理對話框
             document.getElementById('manage-category-btn').addEventListener('click', () => {
                 if(!isUnlocked) return showToast("無編輯權限", false);
                 renderCategoryList();
@@ -786,7 +762,6 @@
                 try { await setDoc(doc(db, 'categories', newCat.id), newCat); input.value = ''; } catch(e){}
             });
 
-            // 任務新增與日曆導覽
             document.getElementById('add-task-btn').addEventListener('click', addTask);
             document.getElementById('task-input').addEventListener('keypress', e => { if(e.key === 'Enter') addTask(); });
             
@@ -799,7 +774,6 @@
             document.getElementById('prev-month-btn').addEventListener('click', () => { displayDate.setMonth(displayDate.getMonth() - 1); refreshView(); });
             document.getElementById('next-month-btn').addEventListener('click', () => { displayDate.setMonth(displayDate.getMonth() + 1); refreshView(); });
             
-            // 報表匯出 (調整輸出順序：標題 -> 子項目 -> 備註)
             document.getElementById('export-btn').addEventListener('click', () => {
                 const dayTasks = tasks.filter(t => t.date === selectedDateStr);
                 const report = `📅 ${selectedDateStr} 工作日誌\n\n` + 
@@ -816,23 +790,21 @@
                 copyToClipboard(report);
             });
 
-            // 拖曳區設定 (改用 SortableJS 支援手機觸控)
+            // 完美的 SortableJS 設定：捨棄會出錯的 fallback 機制，完全回歸預設行為
             document.querySelectorAll('.column-drop-zone').forEach(z => {
                 const sortable = new Sortable(z, {
                     group: 'kanban',
                     animation: 150,
-                    delay: 200, // 手機需長按 0.2 秒觸發拖曳，防止上下滑動頁面時誤觸
-                    delayOnTouchOnly: true,
-                    fallbackTolerance: 5,
-                    forceFallback: true,      // 強制使用觸控備用拖曳
-                    fallbackOnBody: true,     // 避免拖曳時被溢出隱藏(overflow)吃掉
+                    delay: 200,             // 手機需長按 0.2 秒觸發拖曳
+                    delayOnTouchOnly: true, // 只有手機等觸控裝置才需要長按
+                    fallbackTolerance: 5,   // 允許手指有些微的抖動
                     disabled: !isUnlocked,
                     ghostClass: 'opacity-40',
+                    dragClass: 'sortable-drag-effect', 
                     onEnd: (evt) => {
                         const id = evt.item.dataset.id;
                         const newStatus = evt.to.dataset.status;
                         const oldStatus = evt.from.dataset.status;
-                        // 若移到不同區塊才更新狀態
                         if (id && newStatus && newStatus !== oldStatus) {
                             updateTaskStatus(id, newStatus);
                         }
@@ -856,7 +828,6 @@
                         categories = s.docs.map(d => d.data());
                         const sel = document.getElementById('category-input');
                         if(sel) sel.innerHTML = categories.length ? categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('') : '<option value="一般">一般</option>';
-                        // 如果分類管理框是開著的，也即時更新它
                         if(!document.getElementById('category-modal').classList.contains('hidden')) {
                             renderCategoryList();
                         }
