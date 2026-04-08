@@ -13,6 +13,10 @@
         }
         .task-card.can-drag {
             cursor: grab;
+            /* 優化觸控體驗：防止瀏覽器雙擊放大等干擾，讓抓取更靈敏 */
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
         }
         .task-card.can-drag:active {
             cursor: grabbing;
@@ -794,10 +798,11 @@
             document.querySelectorAll('.column-drop-zone').forEach(z => {
                 const sortable = new Sortable(z, {
                     group: 'kanban',
-                    animation: 150,
-                    delay: 200,             // 手機需長按 0.2 秒觸發拖曳
-                    delayOnTouchOnly: true, // 只有手機等觸控裝置才需要長按
-                    fallbackTolerance: 5,   // 允許手指有些微的抖動
+                    animation: 250,
+                    delay: 100,             // 將長按延遲降到 0.1 秒，讓拿起卡片的感覺更敏捷
+                    delayOnTouchOnly: true,
+                    touchStartThreshold: 5, // 提高觸控防手震，避免輕微偏移就取消拖曳
+                    forceFallback: true,    // 強制啟用流暢的自訂拖曳，避免手機原生引擎的遲滯感
                     disabled: !isUnlocked,
                     ghostClass: 'opacity-40',
                     dragClass: 'sortable-drag-effect', 
