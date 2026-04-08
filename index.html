@@ -52,6 +52,12 @@
         .subtask-cb {
             accent-color: #14b8a6; /* brand-500 */
         }
+        /* 確保 SortableJS 在手機上拖曳時，元素會保持可見 */
+        .sortable-fallback {
+            opacity: 1 !important; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+            cursor: grabbing !important;
+        }
     </style>
     <script>
         tailwind.config = {
@@ -504,6 +510,7 @@
 
         function createTaskCard(t) {
             const card = document.createElement('div');
+            // 注意：這裡移除了會干擾手機的 HTML5 drag 原生屬性，純粹依靠 SortableJS
             card.className = `task-card bg-white p-3 rounded-lg shadow-sm border border-slate-100 mb-2 group relative ${isUnlocked ? 'can-drag' : ''}`;
             card.dataset.id = t.id; // 供 SortableJS 辨識任務 ID
             
@@ -817,6 +824,8 @@
                     delay: 200, // 手機需長按 0.2 秒觸發拖曳，防止上下滑動頁面時誤觸
                     delayOnTouchOnly: true,
                     fallbackTolerance: 5,
+                    forceFallback: true,      // 強制使用觸控備用拖曳
+                    fallbackOnBody: true,     // 避免拖曳時被溢出隱藏(overflow)吃掉
                     disabled: !isUnlocked,
                     ghostClass: 'opacity-40',
                     onEnd: (evt) => {
