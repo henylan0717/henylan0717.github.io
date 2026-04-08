@@ -794,15 +794,16 @@
                 copyToClipboard(report);
             });
 
-            // 完美的 SortableJS 設定：捨棄會出錯的 fallback 機制，完全回歸預設行為
+            // 完美的 SortableJS 設定
             document.querySelectorAll('.column-drop-zone').forEach(z => {
                 const sortable = new Sortable(z, {
                     group: 'kanban',
-                    animation: 250,
-                    delay: 100,             // 將長按延遲降到 0.1 秒，讓拿起卡片的感覺更敏捷
+                    animation: 100,         // 【加快】卡片自動讓位的動畫時間 (250ms -> 100ms)
+                    delay: 45,              // 【加快】長按觸發的時間縮到極短 (100ms -> 45ms)，幾乎隨按隨拿
                     delayOnTouchOnly: true,
                     touchStartThreshold: 5, // 提高觸控防手震，避免輕微偏移就取消拖曳
                     forceFallback: true,    // 強制啟用流暢的自訂拖曳，避免手機原生引擎的遲滯感
+                    fallbackTolerance: 5,   // 允許手指有些微的抖動
                     disabled: !isUnlocked,
                     ghostClass: 'opacity-40',
                     dragClass: 'sortable-drag-effect', 
