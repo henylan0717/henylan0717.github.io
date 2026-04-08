@@ -6,6 +6,7 @@
     <title>漢光的工作看板 (雲端同步版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
         .task-card {
             transition: transform 0.1s ease, box-shadow 0.1s ease;
@@ -276,7 +277,7 @@
             appId: "1:1011435018124:web:b58d955d5a1b5d30e2a8a9",
             measurementId: "G-J43KCXFF1R"
         };
-        const ADMIN_KEY = "921886"; 
+        const ADMIN_KEY = "1234"; 
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -291,6 +292,7 @@
         let currentEditTaskId = null;
         let currentEditSubtasks = []; // 用於在編輯視窗中暫存子項目
         let newSubtasks = []; // 用於在新增任務時暫存子項目
+        let sortableInstances = []; // 儲存拖曳實例
 
         const colorThemes = [
             { value: 'purple', class: 'bg-purple-100 text-purple-700 border-purple-200', dotClass: 'bg-purple-500 ring-purple-500' },
@@ -347,6 +349,11 @@
                     btn.title = "點擊輸入金鑰以編輯";
                 }
                 if(window.lucide) lucide.createIcons();
+            }
+            
+            // 更新拖曳權限
+            if (sortableInstances.length > 0) {
+                sortableInstances.forEach(s => s.option("disabled", !isUnlocked));
             }
         };
 
@@ -498,12 +505,7 @@
         function createTaskCard(t) {
             const card = document.createElement('div');
             card.className = `task-card bg-white p-3 rounded-lg shadow-sm border border-slate-100 mb-2 group relative ${isUnlocked ? 'can-drag' : ''}`;
-            
-            if(isUnlocked) {
-                card.draggable = true;
-                card.addEventListener('dragstart', (e) => { e.dataTransfer.setData('tid', t.id); card.classList.add('opacity-40'); });
-                card.addEventListener('dragend', () => card.classList.remove('opacity-40'));
-            }
+            card.dataset.id = t.id; // 供 SortableJS 辨識任務 ID
             
             const catInfo = categories.find(c => c.name === t.category);
             const colorClass = catInfo ? catInfo.colorClass : 'bg-slate-100 text-slate-500 border-slate-200';
@@ -807,17 +809,27 @@
                 copyToClipboard(report);
             });
 
-            // 拖曳區設定
+            // 拖曳區設定 (改用 SortableJS 支援手機觸控)
             document.querySelectorAll('.column-drop-zone').forEach(z => {
-                z.ondragover = e => { e.preventDefault(); if(isUnlocked) z.classList.add('drag-over'); };
-                z.ondragleave = () => z.classList.remove('drag-over');
-                z.ondrop = e => {
-                    e.preventDefault();
-                    z.classList.remove('drag-over');
-                    if(!isUnlocked) return;
-                    const id = e.dataTransfer.getData('tid');
-                    if(id) updateTaskStatus(id, z.dataset.status);
-                };
+                const sortable = new Sortable(z, {
+                    group: 'kanban',
+                    animation: 150,
+                    delay: 200, // 手機需長按 0.2 秒觸發拖曳，防止上下滑動頁面時誤觸
+                    delayOnTouchOnly: true,
+                    fallbackTolerance: 5,
+                    disabled: !isUnlocked,
+                    ghostClass: 'opacity-40',
+                    onEnd: (evt) => {
+                        const id = evt.item.dataset.id;
+                        const newStatus = evt.to.dataset.status;
+                        const oldStatus = evt.from.dataset.status;
+                        // 若移到不同區塊才更新狀態
+                        if (id && newStatus && newStatus !== oldStatus) {
+                            updateTaskStatus(id, newStatus);
+                        }
+                    }
+                });
+                sortableInstances.push(sortable);
             });
         }
 
