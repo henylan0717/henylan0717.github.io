@@ -48,7 +48,7 @@
                     title: "鏡頭魔法師：手機攝影與活動紀錄",
                     duration: "2小時",
                     image: "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=800&q=80",
-                    video: "./video1.mp4",
+                    video: "", // 留空就會自動顯示上方 image 照片，未來有自己的影片再填入 "./your-video.mp4"
                     content: [
                         "手機鏡頭特性與光線運用 (30min)",
                         "動態捕捉技巧：體育課桌球揮拍瞬間等動態攝影 (30min)",
@@ -63,7 +63,7 @@
                     title: "動感教室：Canva 短影音製作",
                     duration: "2小時",
                     image: "https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?w=800&q=80",
-                    video: "./video2.mp4",
+                    video: "",
                     content: [
                         "Canva 影片轉場特效與背景音樂搭配 (30min)",
                         "運鏡技巧與防手震應用概念 (30min)",
@@ -78,7 +78,7 @@
                     title: "AI 繪圖大冒險：從靈感到具象",
                     duration: "2小時",
                     image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80",
-                    video: "./video3.mp4",
+                    video: "",
                     content: [
                         "AI 繪圖詠唱心法與結構化提示詞 (40min)",
                         "生成 4K 高畫質教學插圖與班級吉祥物 (40min)",
@@ -93,7 +93,7 @@
                     title: "班級經營美學：Canva x AI 實用文創設計",
                     duration: "2小時",
                     image: "https://images.unsplash.com/photo-1600132806370-bf17e65e942f?w=800&q=80",
-                    video: "./video4.mp4",
+                    video: "",
                     content: [
                         "AI 素材整合與 Canva 排版美學 (30min)",
                         "班級實用文創：設計專屬榮譽卡、趣味姓名貼與運動會班旗 (30min)",
@@ -108,7 +108,7 @@
                     title: "AI 故事屋：Gemini 創意引導與備課",
                     duration: "2小時",
                     image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800&q=80",
-                    video: "./video5.mp4",
+                    video: "",
                     content: [
                         "運用 Gemini 將知識轉化為趣味腳本 (30min)",
                         "課本知識視覺化：如生成「綠豆發芽觀察日記」或「水循環」圖文解說 (30min)",
@@ -123,7 +123,7 @@
                     title: "校園大偵探：互動式地圖與數位圖鑑",
                     duration: "2小時",
                     image: "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80",
-                    video: "./video6.mp4",
+                    video: "",
                     content: [
                         "Google 我的地圖基礎與座標批次匯入 (40min)",
                         "結合老照片回顧校園變遷（如：舊校舍、消失的遊樂設施與周邊社區記憶）(40min)",
@@ -188,24 +188,30 @@
                                 {filteredCourses.map((course) => (
                                     <div key={course.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
                                         
-                                        {/* Video/Image Section */}
+                                        {/* Video/Image Section 智慧切換 */}
                                         <div className="h-52 w-full relative overflow-hidden group bg-gray-100">
                                             <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-300 z-10 pointer-events-none"></div>
                                             
-                                            <video 
-                                                autoPlay 
-                                                loop 
-                                                muted 
-                                                playsInline
-                                                poster={course.image}
-                                                className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
-                                                onCanPlay={(e) => {
-                                                    // 確保影片一旦載入完成就強制播放
-                                                    e.target.play().catch(() => {});
-                                                }}
-                                            >
-                                                <source src={course.video} type="video/mp4" />
-                                            </video>
+                                            {course.video ? (
+                                                <video 
+                                                    autoPlay 
+                                                    loop 
+                                                    muted 
+                                                    playsInline
+                                                    poster={course.image}
+                                                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
+                                                    onCanPlay={(e) => e.target.play().catch(() => {})}
+                                                >
+                                                    <source src={course.video} type="video/mp4" />
+                                                </video>
+                                            ) : (
+                                                <img 
+                                                    src={course.image} 
+                                                    alt={course.title} 
+                                                    referrerPolicy="no-referrer"
+                                                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
+                                                />
+                                            )}
                                             
                                             <span className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-bold text-purple-700 rounded-lg shadow-sm z-20 border border-purple-100">
                                                 {course.category}
