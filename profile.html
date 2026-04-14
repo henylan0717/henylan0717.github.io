@@ -193,22 +193,19 @@
                                             <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-300 z-10 pointer-events-none"></div>
                                             
                                             <video 
-                                                ref={(el) => {
-                                                    if (el) {
-                                                        el.defaultMuted = true;
-                                                        el.muted = true;
-                                                        el.play().catch(err => console.log("影片播放等待中或受阻:", err));
-                                                    }
-                                                }}
-                                                src={course.video}
-                                                poster={course.image}
                                                 autoPlay 
                                                 loop 
                                                 muted 
                                                 playsInline
-                                                referrerPolicy="no-referrer"
+                                                poster={course.image}
                                                 className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
-                                            />
+                                                onCanPlay={(e) => {
+                                                    // 確保影片一旦載入完成就強制播放
+                                                    e.target.play().catch(() => {});
+                                                }}
+                                            >
+                                                <source src={course.video} type="video/mp4" />
+                                            </video>
                                             
                                             <span className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-bold text-purple-700 rounded-lg shadow-sm z-20 border border-purple-100">
                                                 {course.category}
