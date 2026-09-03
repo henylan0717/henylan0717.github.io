@@ -314,7 +314,7 @@
                                     // 加入 key 綁定 activeCategory 達成切換標籤時重置進場動畫的效果
                                     <div 
                                         key={`${activeCategory}-${course.id}`} 
-                                        className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-2xl transition-shadow duration-500 flex flex-col group opacity-0 animate-fade-in-up"
+                                        className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col group opacity-0 animate-fade-in-up"
                                         style={{ animationDelay: `${index * 120 + 200}ms` }}
                                     >
                                         
@@ -342,7 +342,7 @@
                                             {/* 照片底部漸層，讓標籤更清晰 */}
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 z-10 pointer-events-none"></div>
                                             
-                                            <span className="absolute top-4 left-4 bg-white/95 backdrop-blur-md px-3 py-1.5 text-xs font-bold text-slate-800 rounded-lg shadow-md z-20 border border-white/50">
+                                            <span className="absolute top-4 left-4 bg-white/85 backdrop-blur-xl px-3 py-1.5 text-xs font-bold text-slate-800 rounded-lg shadow-lg shadow-black/10 z-20 border border-white/60">
                                                 {course.category}
                                             </span>
                                         </div>
@@ -485,6 +485,45 @@
                         </div>
                     )}
 
+                    {showPayment && (
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4 transition-opacity">
+                            <div className="absolute inset-0" onClick={() => setShowPayment(false)}></div>
+                            <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative animate-pop-in border border-slate-100 z-10">
+                                <button onClick={() => setShowPayment(false)} className="absolute top-5 right-5 w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                                <div className="flex items-center mb-6 border-b border-slate-100 pb-6">
+                                    <div className="w-14 h-14 bg-gradient-to-br from-green-100 to-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mr-5 shadow-inner">
+                                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black text-slate-800">匯款資訊</h2>
+                                        <p className="text-sm text-slate-500 mt-1">Payment Info</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-4 text-slate-600 bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                                    <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+                                        <span className="text-sm">銀行代碼</span>
+                                        <strong className="text-slate-800">822 (中國信託)</strong>
+                                    </div>
+                                    <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+                                        <span className="text-sm">分行名稱</span>
+                                        <strong className="text-slate-800">華山分行</strong>
+                                    </div>
+                                    <div className="flex justify-between items-center border-b border-slate-200 pb-3">
+                                        <span className="text-sm">帳戶名稱</span>
+                                        <strong className="text-slate-800">藍漢光</strong>
+                                    </div>
+                                    <div className="flex flex-col gap-1 pt-1">
+                                        <span className="text-sm">匯款帳號</span>
+                                        <strong className="text-lg text-emerald-700 tracking-wider font-mono">293530041582</strong>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-4 text-center">※ 匯款完成後請告知帳號後五碼以利對帳</p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* AI 課程顧問 Chatbot */}
                     <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end">
                         {/* 聊天視窗 */}
@@ -537,8 +576,9 @@
                                         value={chatInput}
                                         onChange={(e) => setChatInput(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                        placeholder="輸入您的需求或問題..." 
-                                        className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-shadow"
+                                        placeholder={isTyping ? "AI 正在思考中..." : "輸入您的需求或問題..."} 
+                                        disabled={isTyping}
+                                        className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 transition-shadow disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                                     />
                                     <button 
                                         onClick={handleSendMessage}
@@ -554,7 +594,7 @@
                         {/* 懸浮按鈕 */}
                         <button 
                             onClick={() => setIsChatOpen(!isChatOpen)}
-                            className="w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center text-white border-2 border-white/20"
+                            className="w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-lg shadow-purple-500/30 hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 transition-all duration-300 flex items-center justify-center text-white border-2 border-white/20"
                         >
                             {isChatOpen ? (
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
