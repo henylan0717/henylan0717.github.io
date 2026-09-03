@@ -54,6 +54,21 @@
         
         /* 避免圖片載入前破版 */
         .image-placeholder { background-color: #f3f4f6; }
+
+        /* 隱藏彈出視窗(Modal)的預設捲動條，改用更細緻的樣式 */
+        .modal-scroll::-webkit-scrollbar {
+            width: 4px; /* 更細的捲動條 */
+        }
+        .modal-scroll::-webkit-scrollbar-track {
+            background: transparent; /* 透明背景 */
+        }
+        .modal-scroll::-webkit-scrollbar-thumb {
+            background: #e2e8f0; /* 淡淡的顏色 */
+            border-radius: 10px;
+        }
+        .modal-scroll::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1; /* 滑鼠移過去稍微加深 */
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-purple-200 selection:text-purple-900">
@@ -436,7 +451,8 @@
                             {/* 點擊遮罩外圍關閉 */}
                             <div className="absolute inset-0" onClick={() => setShowLecturer(false)}></div>
                             
-                            <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl relative animate-pop-in border border-slate-100 z-10">
+                            {/* 加入 modal-scroll class 來應用我們自訂的細緻捲動條 */}
+                            <div className="modal-scroll bg-white rounded-3xl p-6 md:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl relative animate-pop-in border border-slate-100 z-10">
                                 <button onClick={() => setShowLecturer(false)} className="absolute top-5 right-5 w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                 </button>
@@ -500,7 +516,8 @@
                         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[70] flex items-center justify-center p-4 transition-opacity">
                             <div className="absolute inset-0" onClick={() => setShowPayment(false)}></div>
                             
-                            <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl relative animate-pop-in border border-slate-100 z-10">
+                            {/* 加入 modal-scroll class 來應用我們自訂的細緻捲動條 */}
+                            <div className="modal-scroll bg-white rounded-3xl p-6 md:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl relative animate-pop-in border border-slate-100 z-10">
                                 <button onClick={() => setShowPayment(false)} className="absolute top-5 right-5 w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                 </button>
